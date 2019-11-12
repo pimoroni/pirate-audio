@@ -4,8 +4,13 @@
 wget -q -O - https://apt.mopidy.com/mopidy.gpg | sudo apt-key add -
 sudo wget -q -O /etc/apt/sources.list.d/mopidy.list https://apt.mopidy.com/buster.list
 
-# Update apt and install Mopidy and core plugins for Spotify and the Iris web UI
+# Update apt
 sudo apt update
+
+# Install dependencies
+sudo apt-get install python-rpi.gpio python-spidev python-pip python-imaging python-numpy
+
+# install Mopidy and core plugins for Spotify and the Iris web UI
 sudo apt install mopidy mopidy-spotify mopidy-iris
 
 # Install support plugins for Pirate Audio
