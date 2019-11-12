@@ -4,7 +4,7 @@ function add_to_config_text {
     CONFIG_LINE="$1"
     CONFIG="$2"
     sed -i "s/^#$CONFIG_LINE/$CONFIG_LINE/" $CONFIG
-    if ! grep -q "$CONFIG_LINE1" $CONFIG; then
+    if ! grep -q "$CONFIG_LINE" $CONFIG; then
 		printf "$CONFIG_LINE\n" >> $CONFIG
     fi
 }
@@ -24,10 +24,13 @@ wget -q -O /etc/apt/sources.list.d/mopidy.list https://apt.mopidy.com/buster.lis
 apt update
 
 # Install dependencies
-apt-get install python-rpi.gpio python-spidev python-pip python-imaging python-numpy
+apt install -y python-rpi.gpio python-spidev python-pip python-pil python-numpy
 
-# install Mopidy and core plugins for Spotify and the Iris web UI
-apt install mopidy mopidy-spotify mopidy-iris
+# Install Mopidy and core plugins for Spotify
+apt install -y mopidy mopidy-spotify
+
+# Install Mopidy Iris web UI
+pip install mopidy-iris
 
 # Install support plugins for Pirate Audio
 pip install Mopidy-PiDi pidi-display-pil pidi-display-st7789 mopidy-raspberry-gpio
@@ -46,3 +49,8 @@ sed -i "s/mixer_volume = $/mixer_volume = 40/g" /etc/mopidy/mopidy.conf
 
 # MAYBE?: Remove the sources.list to avoid any future issues with apt.mopidy.com failing
 # rm -f /etc/apt/sources.list.d/mopidy.list
+
+usermod -a -G spi,i2c,gpio,video mopidy
+
+sudo systemctl enable mopidy
+sudo systemctl start mopidy

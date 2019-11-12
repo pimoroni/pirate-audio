@@ -54,16 +54,18 @@ sudo apt install mopidy mopidy-spotify mopidy-iris
 Next, install the plugins to get Pirate Audio up and running:
 
 ```
-sudo pip install Mopidy-PiDi pidi-display-pil pidi-display-st7789
+sudo pip install Mopidy-PiDi pidi-display-pil pidi-display-st7789 mopidy-raspberry-gpio
 ```
 
 ### Config File & Tweaks
 
-And create yourself a new `mopidy.conf` populated with the default settings:
+To use Mopidy as a service, create a new `mopidy.conf` populated with the default settings:
 
 ```
 mopidy config | sudo tee /etc/mopidy/mopidy.conf
 ```
+
+This replaces the default `mopidy.conf` with one that configures `Mopidy-PiDi` and `mopidy-raspberry-gpio` properly.
 
 These 3 commands will tweak some Mopidy settings, you can alternatively use `sudo nano` to edit `/etc/mopidy/mopidy.conf` and change things to your preference:
 
@@ -76,4 +78,43 @@ sudo sed -i "s/autoaudiosink/alsasink/g" /etc/mopidy/mopidy.conf
 
 # Set mixer_volume to 40
 sudo sed -i "s/mixer_volume = $/mixer_volume = 40/g" /etc/mopidy/mopidy.conf
+```
+
+### Set Up The Service
+
+Finally you'll need to make some changes to the `mopidy` user so it has access to Pirate Audio:
+
+```
+sudo usermod -a -G spi,i2c,gpio,video mopidy
+```
+
+And then you can enable and start the `mopidy` service:
+
+```
+sudo systemctl enable mopidy
+sudo systemctl start mopidy
+```
+
+To check if everything is running correctly, try:
+
+```
+sudo systemctl status mopidy
+```
+
+
+## Updating
+
+Whether you used the step-by-step instructions or auto-installer, Mopidy and its associated plugins can be updated with `pip` and `apt` on your system.
+
+Using `apt` you can update all system packages including Mopidy in two steps:
+
+```
+sudo apt update
+sudo apt upgrade
+```
+
+The Mopidy plugins installed via Python's `pip` have to be updated separately:
+
+```
+sudo pip install --upgrade mopidy-iris Mopidy-PiDi pidi-display-pil pidi-display-st7789 mopidy-raspberry-gpio
 ```
