@@ -1,16 +1,23 @@
 # Pirate Audio Mopidy Setup
 
+
 ## Automatic Setup
 
 You'll need a fresh install of Raspbian Buster.
 
-The provides `install.sh` script executes the manual steps for you.
+If you're setting up Mopidy on an existing system you might want to choose the step-by-step manual install instead.
+
+The provided `install.sh` script executes the manual steps for you.
 
 ```
 ./install.sh
 ```
 
 ## Manual Setup
+
+First, make sure you have SPI enabled on your Raspberry Pi. You can run `sudo raspi-config` and set this up in interfacing options, or add `dtparam=spi=on` to your `/boot/config.txt`.
+
+Double check you have the lines `dtoverlay=hifiberry-dac` and `gpio=25=op,dh` in your `/boot/config.txt` since these enable the DAC for audio output.
 
 ### Mopidy Apt List
 
