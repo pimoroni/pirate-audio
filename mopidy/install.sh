@@ -1,8 +1,8 @@
 #!/bin/bash
 
 function add_to_config_text {
-    CONFIG_LINE = "$1"
-    CONFIG = "$2"
+    CONFIG_LINE="$1"
+    CONFIG="$2"
     sed -i "s/^#$CONFIG_LINE/$CONFIG_LINE/" $CONFIG
     if ! grep -q "$CONFIG_LINE1" $CONFIG; then
 		printf "$CONFIG_LINE\n" >> $CONFIG
