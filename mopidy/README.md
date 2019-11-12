@@ -9,8 +9,12 @@ If you're setting up Mopidy on an existing system you might want to choose the s
 
 The provided `install.sh` script executes the manual steps for you.
 
+If you're running Raspbian Buster Lite you might first need to `sudo apt install git`.
+
 ```
-./install.sh
+git clone https://github.com/pimoroni/pirate-audio
+cd pirate-audio/mopidy
+sudo ./install.sh
 ```
 
 ## Manual Setup
