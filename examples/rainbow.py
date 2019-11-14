@@ -1,8 +1,14 @@
 #!/usr/bin/env python
 
+import time
+from colorsys import hsv_to_rgb
+from PIL import Image, ImageDraw
+from ST7789 import ST7789
+
+
 print("""rainbow.py - Display a rainbow on the Pirate Audio LCD
 
-This example should demonstrate how toL
+This example should demonstrate how to:
 1. set up the Pirate Audio LCD,
 2. create a PIL image to use as a buffer,
 3. draw something into that image,
@@ -13,11 +19,6 @@ You should see the display change colour.
 Press Ctrl+C to exit!
 
 """)
-
-import time
-from colorsys import hsv_to_rgb
-from PIL import Image, ImageDraw
-from ST7789 import ST7789
 
 SPI_SPEED_MHZ = 80
 

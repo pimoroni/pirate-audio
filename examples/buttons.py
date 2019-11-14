@@ -1,6 +1,16 @@
 import signal
 import RPi.GPIO as GPIO
 
+print("""buttons.py - Detect which button has been pressed
+
+This example should demonstrate how to:
+1. set up RPi.GPIO to read buttons,
+2. determine which button has been pressed
+
+Press Ctrl+C to exit!
+
+""")
+
 # The buttons on Pirate Audio are connected to pins 5, 6, 16 and 20
 BUTTONS = [5, 6, 16, 20]
 
@@ -14,11 +24,13 @@ GPIO.setmode(GPIO.BCM)
 # with a "PULL UP", which weakly pulls the input signal to 3.3V.
 GPIO.setup(BUTTONS, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
+
 # "handle_button" will be called every time a button is pressed
 # It receives one argument: the associated input pin.
 def handle_button(pin):
     label = LABELS[BUTTONS.index(pin)]
     print("Button press detected on pin: {} label: {}".format(pin, label))
+
 
 # Loop through out buttons and attach the "handle_button" function to each
 # We're watching the "FALLING" edge (transition from 3.3V to Ground) and
