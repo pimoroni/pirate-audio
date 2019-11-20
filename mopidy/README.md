@@ -49,6 +49,12 @@ You can now install Mopidy. Both `mopidy-spotify` and `mopidy-iris` are optional
 sudo apt install mopidy mopidy-spotify mopidy-iris
 ```
 
+Iris uses a shell script to perform actions such as restarting Mopidy and scanning for local files (https://github.com/jaedb/Iris/blob/master/mopidy_iris/system.sh), it needs root privileges to do this which can be granted with sudoers like so:
+
+```
+echo "mopidy ALL=NOPASSWD: /usr/local/lib/python2.7/dist-packages/mopidy_iris/system.sh" | sudo tee -a /etc/sudoers
+```
+
 ### Pirate Display Plugins
 
 Next, install the plugins to get Pirate Audio up and running:
@@ -62,7 +68,7 @@ sudo pip install Mopidy-PiDi pidi-display-pil pidi-display-st7789 mopidy-raspber
 To use Mopidy as a service, create a new `mopidy.conf` populated with the default settings:
 
 ```
-mopidy config | sudo tee /etc/mopidy/mopidy.conf
+sudo mopidyctl config | sudo tee /etc/mopidy/mopidy.conf
 ```
 
 This replaces the default `mopidy.conf` with one that configures `Mopidy-PiDi` and `mopidy-raspberry-gpio` properly.
