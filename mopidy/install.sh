@@ -40,7 +40,8 @@ echo "mopidy ALL=NOPASSWD: /usr/local/lib/python2.7/dist-packages/mopidy_iris/sy
 pip install Mopidy-PiDi pidi-display-pil pidi-display-st7789 mopidy-raspberry-gpio
 
 # Populate mopidy.conf with complete list of defaults
-mopidy config > /etc/mopidy/mopidy.conf
+# Updated to use mopidyctl to avoid setting user specific config values, as per: https://github.com/pimoroni/pirate-audio/issues/1
+mopidyctl config > /etc/mopidy/mopidy.conf
 
 # Set IP for mpd and http to public
 sed -i "s/127.0.0.1/0.0.0.0/g" /etc/mopidy/mopidy.conf
