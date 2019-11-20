@@ -32,6 +32,10 @@ apt install -y mopidy mopidy-spotify
 # Install Mopidy Iris web UI
 pip install mopidy-iris
 
+# Allow Iris to run its system.sh script for https://github.com/pimoroni/pirate-audio/issues/3
+# This script backs Iris UI buttons for local scan and server restart.
+echo "mopidy ALL=NOPASSWD: /usr/local/lib/python2.7/dist-packages/mopidy_iris/system.sh" >> /etc/sudoers
+
 # Install support plugins for Pirate Audio
 pip install Mopidy-PiDi pidi-display-pil pidi-display-st7789 mopidy-raspberry-gpio
 
