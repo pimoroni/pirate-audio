@@ -65,25 +65,48 @@ sudo pip install Mopidy-PiDi pidi-display-pil pidi-display-st7789 mopidy-raspber
 
 ### Config File & Tweaks
 
-To use Mopidy as a service, create a new `mopidy.conf` populated with the default settings:
+To use Mopidy as a service, create a new `mopidy.conf` which you will then populate with custom settings.
 
 ```
-sudo mopidyctl config | sudo tee /etc/mopidy/mopidy.conf
+sudo touch /etc/mopidy/mopidy.conf
 ```
 
-This replaces the default `mopidy.conf` with one that configures `Mopidy-PiDi` and `mopidy-raspberry-gpio` properly.
-
-These 3 commands will tweak some Mopidy settings, you can alternatively use `sudo nano` to edit `/etc/mopidy/mopidy.conf` and change things to your preference:
+You should then use `sudo nano` (or `vim` if you prefer) to edit `/etc/mopidy/mopidy.conf` and add the following:
 
 ```
-# Set IP for mpd and http (iris) to public
-sudo sed -i "s/127.0.0.1/0.0.0.0/g" /etc/mopidy/mopidy.conf
+[raspberry-gpio]
+enabled = true
+bcm5 = play_pause,active_low,150
+bcm6 = volume_down,active_low,150
+bcm16 = next,active_low,150
+bcm20 = volume_up,active_low,150
 
-# Change to alsa audio sink
-sudo sed -i "s/autoaudiosink/alsasink/g" /etc/mopidy/mopidy.conf
+[pidi]
+enabled = true
+display = st7789
 
-# Set mixer_volume to 40
-sudo sed -i "s/mixer_volume = $/mixer_volume = 40/g" /etc/mopidy/mopidy.conf
+[mpd]
+hostname = 0.0.0.0 ; Allow access to mpd from other devices
+
+[http]
+hostname = 0.0.0.0 ; Allow access to HTTP/Iris from other devices
+
+[audio]
+mixer_volume = 40
+output = alsasink
+```
+
+This will set up the plugins required for Pirate Audio and additionally configure Mopidy to use alsa so that audio is output via the DAC. It also changes the hostname for `mpd` and `http` to `0.0.0.0` (bind to all addresses) which makes them both accessible to other devices on your network. You can substitute your devices static IP if you want to use a specific interface.
+
+If you're planning to use Spotify then you should also add the following, substituting your login details:
+
+```
+[spotify]
+enabled = false
+username =    ; Must be set.
+password =    ; Must be set.
+client_id =   ; Must be set.
+secret =      ; Must be set.
 ```
 
 ### Set Up The Service
