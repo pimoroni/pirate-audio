@@ -65,7 +65,9 @@ fi
 
 # Populate mopidy.conf with complete list of defaults
 # Updated to only change necessary values, as per: https://github.com/pimoroni/pirate-audio/issues/1
-cat <<EOF > $MOPIDY_CONFIG
+# Updated to *append* config values to mopidy.conf, as per: https://github.com/pimoroni/pirate-audio/issues/1#issuecomment-557556802
+cat <<EOF >> $MOPIDY_CONFIG
+
 [raspberry-gpio]
 enabled = true
 bcm5 = play_pause,active_low,150
@@ -89,10 +91,10 @@ output = alsasink
 
 [spotify]
 enabled = false
-username =    ; Must be set.
-password =    ; Must be set.
-client_id =   ; Must be set.
-secret =      ; Must be set.
+username =       ; Must be set.
+password =       ; Must be set.
+client_id =      ; Must be set.
+client_secret =  ; Must be set.
 EOF
 
 # MAYBE?: Remove the sources.list to avoid any future issues with apt.mopidy.com failing
