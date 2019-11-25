@@ -39,7 +39,7 @@ But first you'll need some dependencies:
 
 ```
 sudo apt-get update
-sudo apt-get install python-rpi.gpio python-spidev python-pip python-numpy
+sudo apt-get install python-rpi.gpio python-spidev python-pip python-pil python-numpy
 ```
 
 And then you'll need the st7789 library:
