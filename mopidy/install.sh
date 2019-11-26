@@ -87,7 +87,7 @@ hostname = 0.0.0.0 ; Allow access to HTTP/Iris from other devices
 
 [audio]
 mixer_volume = 40
-output = alsasink
+output = alsasink device=hw:sndrpihifiberry
 
 [spotify]
 enabled = false
