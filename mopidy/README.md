@@ -38,7 +38,7 @@ Next, update apt and install the necessary dependencies:
 
 ```
 sudo apt update
-sudo apt-get install python-rpi.gpio python-spidev python-pip python-imaging python-numpy
+sudo apt-get install python-rpi.gpio python-spidev python-pip python-pil python-numpy
 ```
 
 ### Mopidy with Spotify and Iris
