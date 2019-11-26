@@ -1,7 +1,10 @@
 #!/bin/bash
 
-DATESTAMP=`date "+%Y-%M-%d-%H-%M-%S"`
+DATESTAMP=`date "+%Y-%m-%d-%H-%M-%S"`
 MOPIDY_CONFIG="/etc/mopidy/mopidy.conf"
+MOPIDY_SUDOERS="/etc/sudoers.d/010_mopidy-nopasswd"
+MOPIDY_SYSTEM_SH="/usr/local/lib/python2.7/dist-packages/mopidy_iris/system.sh"
+EXISTING_CONFIG=false
 
 function add_to_config_text {
     CONFIG_LINE="$1"
@@ -24,12 +27,26 @@ warning() {
 	echo -e "$(tput setaf 1)$1$(tput sgr0)"
 }
 
+
+systemctl status mopidy > /dev/null 2>&1
+RESULT=$?
+if [ "$RESULT" == "0" ]; then
+  inform "Stopping Mopidy service..."
+  systemctl stop mopidy
+fi
+
 # Enable SPI
 raspi-config nonint do_spi 0
 
 # Add necessary lines to config.txt (if they don't exist)
 add_to_config_text "gpio=25=op,dh" /boot/config.txt
 add_to_config_text "dtoverlay=hifiberry-dac" /boot/config.txt
+
+if [ -f "$MOPIDY_CONFIG" ]; then
+  inform "Backing up mopidy config to: $MOPIDY_CONFIG.backup-$DATESTAMP"
+  cp "$MOPIDY_CONFIG" "$MOPIDY_CONFIG.backup-$DATESTAMP"
+  EXISTING_CONFIG=true
+fi
 
 # Install apt list for Mopidy, see: https://docs.mopidy.com/en/latest/installation/debian/.
 if [ ! -f "/etc/apt/sources.list.d/mopidy.list" ]; then
@@ -52,18 +69,23 @@ pip install mopidy-iris
 
 # Allow Iris to run its system.sh script for https://github.com/pimoroni/pirate-audio/issues/3
 # This script backs Iris UI buttons for local scan and server restart.
-inform "Adding /usr/local/lib/python2.7/dist-packages/mopidy_iris/system.sh to /etc/sudoers"
-echo "mopidy ALL=NOPASSWD: /usr/local/lib/python2.7/dist-packages/mopidy_iris/system.sh" >> /etc/sudoers
-
-# Install support plugins for Pirate Audio
-pip install Mopidy-PiDi pidi-display-pil pidi-display-st7789 mopidy-raspberry-gpio
-
-if [ -f "$MOPIDY_CONFIG" ]; then
-  inform "Backing up mopidy config to: $MOPIDY_CONFIG.backup-$DATESTAMP"
-  cp "$MOPIDY_CONFIG" "$MOPIDY_CONFIG.backup-$DATESTAMP"
+if [ ! -f "$MOPIDY_SUDOERS" ]; then
+  inform "Adding $MOPIDY_SYSTEM_SH to $MOPIDY_SUDOERS"
+  echo "mopidy ALL=NOPASSWD: $MOPIDY_SYSTEM_SH" > $MOPIDY_SUDOERS
 fi
 
-# Populate mopidy.conf with complete list of defaults
+# Install support plugins for Pirate Audio
+inform "Installing Pirate Audio plugins..."
+pip install --upgrade Mopidy-PiDi pidi-display-pil pidi-display-st7789 mopidy-raspberry-gpio
+
+# Reset mopidy.conf to its default state
+if [ $EXISTING_CONFIG ]; then
+  warning "Resetting $MOPIDY_CONFIG to package defaults."
+  inform "Any custom settings have been backed up to $MOPIDY_CONFIG.backup-$DATESTAMP"
+  apt install --reinstall -o Dpkg::Options::="--force-confask,confnew,confmiss" mopidy > /dev/null 2>&1
+fi
+
+# Append Pirate Audio specific defaults to mopidy.conf
 # Updated to only change necessary values, as per: https://github.com/pimoroni/pirate-audio/issues/1
 # Updated to *append* config values to mopidy.conf, as per: https://github.com/pimoroni/pirate-audio/issues/1#issuecomment-557556802
 cat <<EOF >> $MOPIDY_CONFIG
@@ -103,8 +125,20 @@ EOF
 usermod -a -G spi,i2c,gpio,video mopidy
 
 sudo systemctl enable mopidy
-sudo systemctl start mopidy
+sudo systemctl restart mopidy
 
 echo ""
 success "All done!"
-echo "Don't forget to edit $MOPIDY_CONFIG with you preferences and/or Spotify config."
+if [ $EXISTING_CONFIG ]; then
+  diff $MOPIDY_CONFIG $MOPIDY_CONFIG.backup-$DATESTAMP > /dev/null 2>&1
+  RESULT=$?
+  if [ ! $RESULT == "0" ]; then
+    warning "Mopidy configuration has changed, see summary below and make sure to update $MOPIDY_CONFIG!"
+    inform "Your previous configuration was backed up to $MOPIDY_CONFIG.backup-$DATESTAMP"
+    diff $MOPIDY_CONFIG $MOPIDY_CONFIG.backup-$DATESTAMP
+  else
+    echo "Don't forget to edit $MOPIDY_CONFIG with your preferences and/or Spotify config."
+  fi
+else
+  echo "Don't forget to edit $MOPIDY_CONFIG with you preferences and/or Spotify config."
+fi
