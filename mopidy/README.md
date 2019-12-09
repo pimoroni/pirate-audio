@@ -103,10 +103,10 @@ If you're planning to use Spotify then you should also add the following, substi
 ```
 [spotify]
 enabled = false
-username =    ; Must be set.
-password =    ; Must be set.
-client_id =   ; Must be set.
-secret =      ; Must be set.
+username =       ; Must be set.
+password =       ; Must be set.
+client_id =      ; Must be set.
+client_secret =  ; Must be set.
 ```
 
 ### Set Up The Service
