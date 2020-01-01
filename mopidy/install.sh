@@ -5,6 +5,7 @@ MOPIDY_CONFIG="/etc/mopidy/mopidy.conf"
 MOPIDY_SUDOERS="/etc/sudoers.d/010_mopidy-nopasswd"
 MOPIDY_SYSTEM_SH="/usr/local/lib/python2.7/dist-packages/mopidy_iris/system.sh"
 EXISTING_CONFIG=false
+PYTHON_MAJOR_VERSION=2
 
 function add_to_config_text {
     CONFIG_LINE="$1"
@@ -28,6 +29,28 @@ warning() {
 }
 
 
+# Verify python version via pip
+inform "Verifying python $PYTHON_MAJOR_VERSION.x version"
+PIP_CHECK="pip --version"
+VERSION=`$PIP_CHECK | sed s/^.*\(python[\ ]*// | sed s/.$//`
+RESULT=$?
+if [ "$RESULT" == "0" ]; then
+  MAJOR_VERSION=`echo $VERSION | awk -F. {'print $1'}`
+  if [ "$MAJOR_VERSION" -eq "$PYTHON_MAJOR_VERSION" ]; then
+    success "Found Python $VERSION"
+  else
+    warning "error: installation requires pip for Python $PYTHON_MAJOR_VERSION.x, Python $VERSION found."
+    echo
+    exit 1
+  fi
+else
+  warning "error: \`$PIP_CHECK\` failed to execute successfully"
+  echo
+  exit 1
+fi
+echo
+
+# Stop mopidy if running
 systemctl status mopidy > /dev/null 2>&1
 RESULT=$?
 if [ "$RESULT" == "0" ]; then
@@ -62,7 +85,8 @@ apt update
 apt install -y python-rpi.gpio python-spidev python-pip python-pil python-numpy
 
 # Install Mopidy and core plugins for Spotify
-apt install -y mopidy mopidy-spotify
+apt install -y --allow-downgrades mopidy=2.3.1-1 mopidy-spotify=3.1.0-0mopidy1
+apt-mark hold mopidy mopidy-spotify
 
 # Install Mopidy Iris web UI
 pip install mopidy-iris
