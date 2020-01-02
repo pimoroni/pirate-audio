@@ -65,6 +65,7 @@ RESULT=$?
 if [ "$RESULT" == "0" ]; then
   inform "Stopping Mopidy service..."
   systemctl stop mopidy
+  echo
 fi
 
 # Enable SPI
