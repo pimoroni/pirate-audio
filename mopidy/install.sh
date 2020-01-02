@@ -6,6 +6,9 @@ MOPIDY_SUDOERS="/etc/sudoers.d/010_mopidy-nopasswd"
 MOPIDY_SYSTEM_SH="/usr/local/lib/python2.7/dist-packages/mopidy_iris/system.sh"
 EXISTING_CONFIG=false
 PYTHON_MAJOR_VERSION=2
+MOPIDY_VERSION=2.3.1-1
+MOPIDY_SPOTIFY_VERSION=3.1.0-0mopidy1
+PIP_BIN=pip
 
 function add_to_config_text {
     CONFIG_LINE="$1"
@@ -29,9 +32,15 @@ warning() {
 }
 
 
+# Update apt
+apt update
+
+# Install dependencies
+apt install -y python-rpi.gpio python-spidev python-pip python-pil python-numpy
+
 # Verify python version via pip
 inform "Verifying python $PYTHON_MAJOR_VERSION.x version"
-PIP_CHECK="pip --version"
+PIP_CHECK="$PIP_BIN --version"
 VERSION=`$PIP_CHECK | sed s/^.*\(python[\ ]*// | sed s/.$//`
 RESULT=$?
 if [ "$RESULT" == "0" ]; then
@@ -78,18 +87,12 @@ if [ ! -f "/etc/apt/sources.list.d/mopidy.list" ]; then
   wget -q -O /etc/apt/sources.list.d/mopidy.list https://apt.mopidy.com/buster.list
 fi
 
-# Update apt
-apt update
-
-# Install dependencies
-apt install -y python-rpi.gpio python-spidev python-pip python-pil python-numpy
-
 # Install Mopidy and core plugins for Spotify
-apt install -y --allow-downgrades mopidy=2.3.1-1 mopidy-spotify=3.1.0-0mopidy1
+apt install -y --allow-downgrades mopidy=$MOPIDY_VERSION mopidy-spotify=$MOPIDY_SPOTIFY_VERSION
 apt-mark hold mopidy mopidy-spotify
 
 # Install Mopidy Iris web UI
-pip install mopidy-iris
+$PIP_BIN install mopidy-iris
 
 # Allow Iris to run its system.sh script for https://github.com/pimoroni/pirate-audio/issues/3
 # This script backs Iris UI buttons for local scan and server restart.
@@ -100,13 +103,13 @@ fi
 
 # Install support plugins for Pirate Audio
 inform "Installing Pirate Audio plugins..."
-pip install --upgrade Mopidy-PiDi pidi-display-pil pidi-display-st7789 mopidy-raspberry-gpio
+$PIP_BIN install --upgrade Mopidy-PiDi pidi-display-pil pidi-display-st7789 mopidy-raspberry-gpio
 
 # Reset mopidy.conf to its default state
 if [ $EXISTING_CONFIG ]; then
   warning "Resetting $MOPIDY_CONFIG to package defaults."
   inform "Any custom settings have been backed up to $MOPIDY_CONFIG.backup-$DATESTAMP"
-  apt install --reinstall -o Dpkg::Options::="--force-confask,confnew,confmiss" mopidy > /dev/null 2>&1
+  apt install --reinstall -o Dpkg::Options::="--force-confask,confnew,confmiss" mopidy=$MOPIDY_VERSION > /dev/null 2>&1
 fi
 
 # Append Pirate Audio specific defaults to mopidy.conf
