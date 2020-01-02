@@ -78,6 +78,7 @@ if [ -f "$MOPIDY_CONFIG" ]; then
   inform "Backing up mopidy config to: $MOPIDY_CONFIG.backup-$DATESTAMP"
   cp "$MOPIDY_CONFIG" "$MOPIDY_CONFIG.backup-$DATESTAMP"
   EXISTING_CONFIG=true
+  echo
 fi
 
 # Install apt list for Mopidy, see: https://docs.mopidy.com/en/latest/installation/debian/.
