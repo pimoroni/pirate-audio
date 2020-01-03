@@ -5,6 +5,10 @@ MOPIDY_CONFIG="/etc/mopidy/mopidy.conf"
 MOPIDY_SUDOERS="/etc/sudoers.d/010_mopidy-nopasswd"
 MOPIDY_SYSTEM_SH="/usr/local/lib/python2.7/dist-packages/mopidy_iris/system.sh"
 EXISTING_CONFIG=false
+PYTHON_MAJOR_VERSION=2
+MOPIDY_VERSION=2.3.1-1
+MOPIDY_SPOTIFY_VERSION=3.1.0-0mopidy1
+PIP_BIN=pip
 
 function add_to_config_text {
     CONFIG_LINE="$1"
@@ -28,11 +32,40 @@ warning() {
 }
 
 
+# Update apt and install dependencies
+inform "Updating apt and installing dependencies"
+apt update
+apt install -y python-rpi.gpio python-spidev python-pip python-pil python-numpy
+echo
+
+# Verify python version via pip
+inform "Verifying python $PYTHON_MAJOR_VERSION.x version"
+PIP_CHECK="$PIP_BIN --version"
+VERSION=`$PIP_CHECK | sed s/^.*\(python[\ ]*// | sed s/.$//`
+RESULT=$?
+if [ "$RESULT" == "0" ]; then
+  MAJOR_VERSION=`echo $VERSION | awk -F. {'print $1'}`
+  if [ "$MAJOR_VERSION" -eq "$PYTHON_MAJOR_VERSION" ]; then
+    success "Found Python $VERSION"
+  else
+    warning "error: installation requires pip for Python $PYTHON_MAJOR_VERSION.x, Python $VERSION found."
+    echo
+    exit 1
+  fi
+else
+  warning "error: \`$PIP_CHECK\` failed to execute successfully"
+  echo
+  exit 1
+fi
+echo
+
+# Stop mopidy if running
 systemctl status mopidy > /dev/null 2>&1
 RESULT=$?
 if [ "$RESULT" == "0" ]; then
   inform "Stopping Mopidy service..."
   systemctl stop mopidy
+  echo
 fi
 
 # Enable SPI
@@ -46,6 +79,7 @@ if [ -f "$MOPIDY_CONFIG" ]; then
   inform "Backing up mopidy config to: $MOPIDY_CONFIG.backup-$DATESTAMP"
   cp "$MOPIDY_CONFIG" "$MOPIDY_CONFIG.backup-$DATESTAMP"
   EXISTING_CONFIG=true
+  echo
 fi
 
 # Install apt list for Mopidy, see: https://docs.mopidy.com/en/latest/installation/debian/.
@@ -53,41 +87,46 @@ if [ ! -f "/etc/apt/sources.list.d/mopidy.list" ]; then
   inform "Adding Mopidy apt source"
   wget -q -O - https://apt.mopidy.com/mopidy.gpg | apt-key add -
   wget -q -O /etc/apt/sources.list.d/mopidy.list https://apt.mopidy.com/buster.list
+  apt update
+  echo
 fi
 
-# Update apt
-apt update
-
-# Install dependencies
-apt install -y python-rpi.gpio python-spidev python-pip python-pil python-numpy
-
 # Install Mopidy and core plugins for Spotify
-apt install -y mopidy mopidy-spotify
+inform "Installing mopidy packages"
+apt install -y --allow-downgrades mopidy=$MOPIDY_VERSION mopidy-spotify=$MOPIDY_SPOTIFY_VERSION
+apt-mark hold mopidy mopidy-spotify
+echo
 
 # Install Mopidy Iris web UI
-pip install mopidy-iris
+inform "Installing Iris web UI for Mopidy"
+$PIP_BIN install mopidy-iris
+echo
 
 # Allow Iris to run its system.sh script for https://github.com/pimoroni/pirate-audio/issues/3
 # This script backs Iris UI buttons for local scan and server restart.
 if [ ! -f "$MOPIDY_SUDOERS" ]; then
   inform "Adding $MOPIDY_SYSTEM_SH to $MOPIDY_SUDOERS"
   echo "mopidy ALL=NOPASSWD: $MOPIDY_SYSTEM_SH" > $MOPIDY_SUDOERS
+  echo
 fi
 
 # Install support plugins for Pirate Audio
 inform "Installing Pirate Audio plugins..."
-pip install --upgrade Mopidy-PiDi pidi-display-pil pidi-display-st7789 mopidy-raspberry-gpio
+$PIP_BIN install --upgrade Mopidy-PiDi pidi-display-pil pidi-display-st7789 mopidy-raspberry-gpio
+echo
 
 # Reset mopidy.conf to its default state
 if [ $EXISTING_CONFIG ]; then
   warning "Resetting $MOPIDY_CONFIG to package defaults."
   inform "Any custom settings have been backed up to $MOPIDY_CONFIG.backup-$DATESTAMP"
-  apt install --reinstall -o Dpkg::Options::="--force-confask,confnew,confmiss" mopidy > /dev/null 2>&1
+  apt install --reinstall -o Dpkg::Options::="--force-confask,confnew,confmiss" mopidy=$MOPIDY_VERSION > /dev/null 2>&1
+  echo
 fi
 
 # Append Pirate Audio specific defaults to mopidy.conf
 # Updated to only change necessary values, as per: https://github.com/pimoroni/pirate-audio/issues/1
 # Updated to *append* config values to mopidy.conf, as per: https://github.com/pimoroni/pirate-audio/issues/1#issuecomment-557556802
+inform "Configuring Mopidy"
 cat <<EOF >> $MOPIDY_CONFIG
 
 [raspberry-gpio]
@@ -118,16 +157,18 @@ password =       ; Must be set.
 client_id =      ; Must be set.
 client_secret =  ; Must be set.
 EOF
+echo
 
 # MAYBE?: Remove the sources.list to avoid any future issues with apt.mopidy.com failing
 # rm -f /etc/apt/sources.list.d/mopidy.list
 
 usermod -a -G spi,i2c,gpio,video mopidy
 
+inform "Enabling and starting Mopidy"
 sudo systemctl enable mopidy
 sudo systemctl restart mopidy
 
-echo ""
+echo
 success "All done!"
 if [ $EXISTING_CONFIG ]; then
   diff $MOPIDY_CONFIG $MOPIDY_CONFIG.backup-$DATESTAMP > /dev/null 2>&1
