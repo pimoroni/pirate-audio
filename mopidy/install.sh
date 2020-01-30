@@ -3,12 +3,9 @@
 DATESTAMP=`date "+%Y-%m-%d-%H-%M-%S"`
 MOPIDY_CONFIG="/etc/mopidy/mopidy.conf"
 MOPIDY_SUDOERS="/etc/sudoers.d/010_mopidy-nopasswd"
-MOPIDY_SYSTEM_SH="/usr/local/lib/python2.7/dist-packages/mopidy_iris/system.sh"
 EXISTING_CONFIG=false
-PYTHON_MAJOR_VERSION=2
-MOPIDY_VERSION=2.3.1-1
-MOPIDY_SPOTIFY_VERSION=3.1.0-0mopidy1
-PIP_BIN=pip
+PYTHON_MAJOR_VERSION=3
+PIP_BIN=pip3
 
 function add_to_config_text {
     CONFIG_LINE="$1"
@@ -35,7 +32,7 @@ warning() {
 # Update apt and install dependencies
 inform "Updating apt and installing dependencies"
 apt update
-apt install -y python-rpi.gpio python-spidev python-pip python-pil python-numpy
+apt install -y python3-rpi.gpio python3-spidev python3-pip python3-pil python3-numpy
 echo
 
 # Verify python version via pip
@@ -93,22 +90,29 @@ fi
 
 # Install Mopidy and core plugins for Spotify
 inform "Installing mopidy packages"
-apt install -y --allow-downgrades mopidy=$MOPIDY_VERSION mopidy-spotify=$MOPIDY_SPOTIFY_VERSION
-apt-mark hold mopidy mopidy-spotify
+apt-mark unhold mopidy mopidy-spotify
+apt install -y mopidy mopidy-spotify
 echo
 
 # Install Mopidy Iris web UI
 inform "Installing Iris web UI for Mopidy"
-$PIP_BIN install mopidy-iris
+$PIP_BIN install --upgrade mopidy-iris
 echo
 
 # Allow Iris to run its system.sh script for https://github.com/pimoroni/pirate-audio/issues/3
 # This script backs Iris UI buttons for local scan and server restart.
-if [ ! -f "$MOPIDY_SUDOERS" ]; then
-  inform "Adding $MOPIDY_SYSTEM_SH to $MOPIDY_SUDOERS"
-  echo "mopidy ALL=NOPASSWD: $MOPIDY_SYSTEM_SH" > $MOPIDY_SUDOERS
-  echo
-fi
+
+# Get location of Iris's system.sh
+MOPIDY_SYSTEM_SH=`python$PYTHON_MAJOR_VERSION - <<EOF
+import pkg_resources
+distribution = pkg_resources.get_distribution('mopidy_iris')
+print(f"{distribution.location}/mopidy_iris/system.sh")
+EOF`
+
+# Add it to sudoers
+inform "Adding $MOPIDY_SYSTEM_SH to $MOPIDY_SUDOERS"
+echo "mopidy ALL=NOPASSWD: $MOPIDY_SYSTEM_SH" > $MOPIDY_SUDOERS
+echo
 
 # Install support plugins for Pirate Audio
 inform "Installing Pirate Audio plugins..."
