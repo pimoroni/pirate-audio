@@ -8,15 +8,6 @@ EXISTING_CONFIG=false
 PYTHON_MAJOR_VERSION=2
 MOPIDY_VERSION=2.3.1-1
 MOPIDY_SPOTIFY_VERSION=3.1.0-0mopidy1
-
-INSTALL_FROM_DEBS=true
-MOPIDY_DEBS=(
-  "https://get.pimoroni.com/mopidy/libspotify12_12.1.103-0mopidy1_armhf.deb"
-  "https://get.pimoroni.com/mopidy/mopidy-spotify_3.1.0-0mopidy1_all.deb"
-  "https://get.pimoroni.com/mopidy/mopidy_2.3.1-1_all.deb"
-  "https://get.pimoroni.com/mopidy/python-spotify_2.1.3-0mopidy1_armhf.deb"
-)
-
 PIP_BIN=pip
 
 function add_to_config_text {
@@ -91,35 +82,19 @@ if [ -f "$MOPIDY_CONFIG" ]; then
   echo
 fi
 
-if [ ! $INSTALL_FROM_DEBS ]; then
-  # Install apt list for Mopidy, see: https://docs.mopidy.com/en/latest/installation/debian/.
-  if [ ! -f "/etc/apt/sources.list.d/mopidy.list" ]; then
-    inform "Adding Mopidy apt source"
-    wget -q -O - https://apt.mopidy.com/mopidy.gpg | apt-key add -
-    wget -q -O /etc/apt/sources.list.d/mopidy.list https://apt.mopidy.com/buster.list
-    apt update
-    echo
-  fi
+# Install apt list for Mopidy, see: https://docs.mopidy.com/en/latest/installation/debian/.
+if [ ! -f "/etc/apt/sources.list.d/mopidy.list" ]; then
+  inform "Adding Mopidy apt source"
+  wget -q -O - https://apt.mopidy.com/mopidy.gpg | apt-key add -
+  wget -q -O /etc/apt/sources.list.d/mopidy.list https://apt.mopidy.com/buster.list
+  apt update
+  echo
 fi
 
 # Install Mopidy and core plugins for Spotify
-if [ $INSTALL_FROM_DEBS ]; then
-  inform "Installing mopidy $MOPIDY_VERSION from .deb files"
-  W_DIR=$(pwd)
-  TEMP_DIR=$(mktemp -d -t pirate-audio-mopidy-XXXXXXXX)
-  cd $TEMP_DIR
-  for package in "${MOPIDY_DEBS[@]}"; do
-    echo "Downloading: $package"
-    wget $package
-  done
-  dpkg -i *.deb
-  cd $W_DIR
-  rm -r $TEMP_DIR
-else
-  inform "Installing mopidy packages"
-  apt install -y --allow-downgrades mopidy=$MOPIDY_VERSION mopidy-spotify=$MOPIDY_SPOTIFY_VERSION
-  apt-mark hold mopidy mopidy-spotify
-fi
+inform "Installing mopidy packages"
+apt install -y --allow-downgrades mopidy=$MOPIDY_VERSION mopidy-spotify=$MOPIDY_SPOTIFY_VERSION
+apt-mark hold mopidy mopidy-spotify
 echo
 
 # Install Mopidy Iris web UI
@@ -141,7 +116,7 @@ $PIP_BIN install --upgrade Mopidy-PiDi pidi-display-pil pidi-display-st7789 mopi
 echo
 
 # Reset mopidy.conf to its default state
-if [ $EXISTING_CONFIG ] && [ ! $INSTALLL_FROM_DEBS ]; then
+if [ $EXISTING_CONFIG ]; then
   warning "Resetting $MOPIDY_CONFIG to package defaults."
   inform "Any custom settings have been backed up to $MOPIDY_CONFIG.backup-$DATESTAMP"
   apt install --reinstall -o Dpkg::Options::="--force-confask,confnew,confmiss" mopidy=$MOPIDY_VERSION > /dev/null 2>&1
