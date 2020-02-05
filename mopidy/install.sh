@@ -4,7 +4,7 @@ echo "This installer is currently pending the release of Mopidy Iris for Mopidy 
 echo "If you're happy with a - potentially - subtly broken install you can:"
 echo " - delete these lines"
 echo " - run this installer"
-echo " - follow the workaround at https://github.com/pimoroni/pirate-audio/issues/19"
+echo " - install the development Mopidy Iris with: python3 -m pip install https://github.com/jaedb/Iris/archive/develop.zip"
 echo "Sorry for the inconvenience. Hang in there!"
 exit 0
 
