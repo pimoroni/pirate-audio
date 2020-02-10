@@ -1,13 +1,5 @@
 #!/bin/bash
 
-echo "This installer is currently pending the release of Mopidy Iris for Mopidy 3.x"
-echo "If you're happy with a - potentially - subtly broken install you can:"
-echo " - delete these lines"
-echo " - run this installer"
-echo " - install the development Mopidy Iris with: python3 -m pip install https://github.com/jaedb/Iris/archive/develop.zip"
-echo "Sorry for the inconvenience. Hang in there!"
-exit 0
-
 DATESTAMP=`date "+%Y-%m-%d-%H-%M-%S"`
 MOPIDY_CONFIG="/etc/mopidy/mopidy.conf"
 MOPIDY_SUDOERS="/etc/sudoers.d/010_mopidy-nopasswd"
