@@ -146,10 +146,10 @@ enabled = true
 display = st7789
 
 [mpd]
-hostname = 0.0.0.0 ; Allow access to mpd from other devices
+hostname = 0.0.0.0
 
 [http]
-hostname = 0.0.0.0 ; Allow access to HTTP/Iris from other devices
+hostname = 0.0.0.0
 
 [audio]
 mixer_volume = 40
@@ -157,10 +157,10 @@ output = alsasink device=hw:sndrpihifiberry
 
 [spotify]
 enabled = false
-username =       ; Must be set.
-password =       ; Must be set.
-client_id =      ; Must be set.
-client_secret =  ; Must be set.
+username =
+password =
+client_id =
+client_secret =
 EOF
 echo
 
