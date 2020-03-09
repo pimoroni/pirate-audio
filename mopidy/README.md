@@ -38,7 +38,7 @@ Next, update apt and install the necessary dependencies:
 
 ```
 sudo apt update
-sudo apt-get install python-rpi.gpio python-spidev python-pip python-pil python-numpy
+sudo apt-get install python3-rpi.gpio python3-spidev python3-pip python3-pil python3-numpy
 ```
 
 ### Mopidy with Spotify and Iris
@@ -46,13 +46,14 @@ sudo apt-get install python-rpi.gpio python-spidev python-pip python-pil python-
 You can now install Mopidy. Both `mopidy-spotify` and `mopidy-iris` are optional. The former adds support for the music streaming service of the same name, and `iris` is a web interface for Mopidy that you'll no doubt find useful.
 
 ```
-sudo apt install mopidy mopidy-spotify mopidy-iris
+sudo apt install mopidy mopidy-spotify
+sudo pip3 install mopidy-iris
 ```
 
-Iris uses a shell script to perform actions such as restarting Mopidy and scanning for local files (https://github.com/jaedb/Iris/blob/master/mopidy_iris/system.sh), it needs root privileges to do this which can be granted with sudoers like so:
+Iris uses a shell script to perform actions such as restarting Mopidy and scanning for local files (https://github.com/jaedb/Iris/blob/master/mopidy_iris/system.sh), it needs root privileges to do this which can be granted with sudoers like so (assuming your Python is version 3.7, you can find the dist-packages dir with `python3 -m site`):
 
 ```
-echo "mopidy ALL=NOPASSWD: /usr/local/lib/python2.7/dist-packages/mopidy_iris/system.sh" | sudo tee -a /etc/sudoers
+echo "mopidy ALL=NOPASSWD: /usr/local/lib/python3.7/dist-packages/mopidy_iris/system.sh" | sudo tee -a /etc/sudoers
 ```
 
 ### Pirate Display Plugins
@@ -60,7 +61,7 @@ echo "mopidy ALL=NOPASSWD: /usr/local/lib/python2.7/dist-packages/mopidy_iris/sy
 Next, install the plugins to get Pirate Audio up and running:
 
 ```
-sudo pip install Mopidy-PiDi pidi-display-pil pidi-display-st7789 mopidy-raspberry-gpio
+sudo pip3 install Mopidy-PiDi pidi-display-pil pidi-display-st7789 mopidy-raspberry-gpio
 ```
 
 ### Config File & Tweaks
@@ -145,5 +146,5 @@ sudo apt upgrade
 The Mopidy plugins installed via Python's `pip` have to be updated separately:
 
 ```
-sudo pip install --upgrade mopidy-iris Mopidy-PiDi pidi-display-pil pidi-display-st7789 mopidy-raspberry-gpio
+sudo pip3 install --upgrade mopidy-iris Mopidy-PiDi pidi-display-pil pidi-display-st7789 mopidy-raspberry-gpio
 ```
