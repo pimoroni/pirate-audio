@@ -11,8 +11,10 @@ Press Ctrl+C to exit!
 
 """)
 
-# The buttons on Pirate Audio are connected to pins 5, 6, 16 and 20
-BUTTONS = [5, 6, 16, 20]
+# The buttons on Pirate Audio are connected to pins 5, 6, 16 and 24
+# Boards prior to 23 January 2020 used 5, 6, 16 and 20 
+# try changing 24 to 20 if your Y button doesn't work.
+BUTTONS = [5, 6, 16, 24]
 
 # These correspond to buttons A, B, X and Y respectively
 LABELS = ['A', 'B', 'X', 'Y']
