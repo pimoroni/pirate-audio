@@ -141,6 +141,24 @@ bcm16 = next,active_low,250
 bcm20 = volume_up,active_low,250
 bcm24 = volume_up,active_low,250
 
+[file]
+enabled = true
+media_dirs = /home/pi/Music
+show_dotfiles = false
+excluded_file_extensions =
+  .directory
+  .html
+  .jpeg
+  .jpg
+  .log
+  .nfo
+  .pdf
+  .png
+  .txt
+  .zip
+follow_symlinks = false
+metadata_timeout = 1000
+
 [pidi]
 enabled = true
 display = st7789
