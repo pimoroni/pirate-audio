@@ -110,9 +110,14 @@ print(f"{distribution.location}/mopidy_iris/system.sh")
 EOF`
 
 # Add it to sudoers
-inform "Adding $MOPIDY_SYSTEM_SH to $MOPIDY_SUDOERS"
-echo "mopidy ALL=NOPASSWD: $MOPIDY_SYSTEM_SH" > $MOPIDY_SUDOERS
-echo
+if [ "$MOPIDY_SYSTEM_SH" == "" ]; then
+  warning "Could not find system.sh path for mopidy_iris using python$PYTHON_MAJOR_VERSION"
+  warning "Refusing to edit $MOPIDY_SUDOERS with empty system.sh path!"
+else
+  inform "Adding $MOPIDY_SYSTEM_SH to $MOPIDY_SUDOERS"
+  echo "mopidy ALL=NOPASSWD: $MOPIDY_SYSTEM_SH" > $MOPIDY_SUDOERS
+  echo
+fi
 
 # Install support plugins for Pirate Audio
 inform "Installing Pirate Audio plugins..."
