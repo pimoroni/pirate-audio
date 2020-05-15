@@ -167,6 +167,7 @@ metadata_timeout = 1000
 [pidi]
 enabled = true
 display = st7789
+rotation = 90
 
 [mpd]
 hostname = 0.0.0.0
