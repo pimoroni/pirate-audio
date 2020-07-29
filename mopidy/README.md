@@ -87,10 +87,10 @@ enabled = true
 display = st7789
 
 [mpd]
-hostname = 0.0.0.0 ; Allow access to mpd from other devices
+hostname = 0.0.0.0
 
 [http]
-hostname = 0.0.0.0 ; Allow access to HTTP/Iris from other devices
+hostname = 0.0.0.0
 
 [audio]
 mixer_volume = 40
@@ -99,16 +99,18 @@ output = alsasink
 
 This will set up the plugins required for Pirate Audio and additionally configure Mopidy to use alsa so that audio is output via the DAC. It also changes the hostname for `mpd` and `http` to `0.0.0.0` (bind to all addresses) which makes them both accessible to other devices on your network. You can substitute your devices static IP if you want to use a specific interface.
 
-If you're planning to use Spotify then you should also add the following, substituting your login details:
+If you're planning to use Spotify then you should also add the following, inserting your login details, client ID and secret where appropriate:
 
 ```
 [spotify]
 enabled = false
-username =       ; Must be set.
-password =       ; Must be set.
-client_id =      ; Must be set.
-client_secret =  ; Must be set.
+username = 
+password = 
+client_id = 
+client_secret = 
 ```
+
+To retrieve the client ID and secret you can authenticate with Spotify here: https://mopidy.com/ext/spotify/
 
 ### Set Up The Service
 
