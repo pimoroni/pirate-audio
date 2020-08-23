@@ -25,6 +25,12 @@ You can also disable onboard audio if you're not going to use it, this sometimes
 dtparam=audio=off
 ```
 
+## Using with Spotify Connect
+
+If you want to display album art and track information on your Pirate Audio LCD then check out https://github.com/pimoroni/pidi-spotify
+
+Note: PiDi Spotify is currently in beta, and does not work alongside Mopidy. If you want to smush track information into Mopidy from Raspotify see: https://github.com/pimoroni/pirate-audio/issues/17 
+
 ## Using With Mopidy
 
 We've created plugins to get you up and running with Pirate Audio and Mopidy.
