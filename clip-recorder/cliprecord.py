@@ -25,8 +25,8 @@ BUTTON_PLAY = (390, 0, 460, 50)
 BUTTON_DELETE = (390, 230, 460, 280)
 BUTTON_NEXT = (0, 230, 50, 280)
 
-BUTTONS = [5, 6, 16, 20, 24]
-LABELS = ["A", "B", "X", "Y", "Y"]
+BUTTONS = [5, 6, 16, 24]
+LABELS = ["A", "B", "X", "Y"]
 
 
 def transparent(color, opacity=0.2):
@@ -35,7 +35,7 @@ def transparent(color, opacity=0.2):
     return r, g, b, opacity
 
 class Recordamajig:
-    def __init__(self, samplerate=8000):
+    def __init__(self, device="mic_out", samplerate=16000):
         self._state = "initial"
         self._clip = 1
 
@@ -44,6 +44,7 @@ class Recordamajig:
 
         self._graph = [0 for _ in range(44)]
 
+        self._device = device
         self._samplerate = samplerate
 
         self._image = Image.new("RGBA", (480, 480), (0, 0, 0, 0))
@@ -71,8 +72,8 @@ class Recordamajig:
         self._update_clip()
 
         self._stream = sounddevice.InputStream(
-            device="mic_sv",  # adau7002",
-            dtype="int32",
+            device=self._device,  # adau7002",
+            dtype="int16",
             channels=2,
             samplerate=self._samplerate,
             callback=self.audio_callback
@@ -139,7 +140,7 @@ class Recordamajig:
         self._written = 0
         self._wave = wave.open(str(self.clipfile), "w")
         self._wave.setframerate(self._samplerate)
-        self._wave.setsampwidth(2)  # two bytes, 16bit
+        self._wave.setsampwidth(2)  # size of the input dtype
         self._wave.setnchannels(2)
         self._recording = True
 
@@ -158,11 +159,11 @@ class Recordamajig:
         return self._written / self._samplerate
 
     def audio_callback(self, indata, frames, time, status):
-        self._vu_left = numpy.average(numpy.abs(indata[:,0])) / 0xffff
-        self._vu_right = numpy.average(numpy.abs(indata[:,1])) / 0xffff
+        self._vu_left = numpy.average(numpy.abs(indata[:,0])) / 65535.0 * 10
+        self._vu_right = numpy.average(numpy.abs(indata[:,1])) / 65535.0 * 10
         print(self._vu_left, self._vu_right)
 
-        self._graph.append(max(self._vu_left, self._vu_right))
+        self._graph.append(min(1.0, max(self._vu_left, self._vu_right)))
         self._graph = self._graph[-44:]
 
         if self._recording and self._wave is not None:
@@ -316,15 +317,15 @@ display = ST7789(
 recordamajig = Recordamajig()
 
 def handle_keydown(e):
-    print(e)
     char = getattr(e, "char", e)
+    print("Key {}".format(char))
     if char in ("r", 5):   # A button
         recordamajig.record()
         if recordamajig.recording:
             print("Start recording...")
         else:
             print("Stop recording...")
-    if char in ("d", 20, 24):  # Y button
+    if char in ("d", 24):  # Y button
         recordamajig.delete()
     if char in ("n", 6):       # B button
         recordamajig.next()
