@@ -35,7 +35,7 @@ def transparent(color, opacity=0.2):
     return r, g, b, opacity
 
 class Recordamajig:
-    def __init__(self, device="mic_out", samplerate=16000):
+    def __init__(self, device="mic_out", output_device="upmix", samplerate=16000):
         self._state = "initial"
         self._clip = 1
 
@@ -45,6 +45,7 @@ class Recordamajig:
         self._graph = [0 for _ in range(44)]
 
         self._device = device
+        self._out_device = output_device
         self._samplerate = samplerate
 
         self._image = Image.new("RGBA", (480, 480), (0, 0, 0, 0))
@@ -78,6 +79,13 @@ class Recordamajig:
             samplerate=self._samplerate,
             callback=self.audio_callback
         )
+        self._out_stream = sounddevice.OutputStream(
+            device=self._out_device,
+            dtype="int16",
+            channels=2,
+            samplerate=self._samplerate,
+            callback=self.audio_playback_callback
+        )
 
     def next(self):
         if not self._clip_exists:
@@ -93,13 +101,25 @@ class Recordamajig:
             if not (self._samplerate == self._wave_read.getframerate()):
                 raise RuntimeError(f"Invalid samplerate in {self.clipfile}")
 
+    def _playback_stopped(self):
+        self._vu_left = 0
+        self._vu_right = 0
+        self._graph = [0 for _ in range(44)]
+
     def play(self):
         if self._confirm_delete:
             self._confirm_delete = False
             return
         if self._recording:
             return
-        # TODO add play
+        if self._out_stream.stopped or not self._out_stream.active:
+            self._playback_stopped()
+            self._out_stream.stop()
+            self._update_clip()
+            self._out_stream.start()
+        else:
+            self._out_stream.stop()
+            self._playback_stopped()
 
     def record(self):
         if self._confirm_delete:
@@ -169,6 +189,21 @@ class Recordamajig:
         if self._recording and self._wave is not None:
             self._written += frames
             self._wave.writeframes(indata.tobytes())
+
+    def audio_playback_callback(self, outdata, frames, time, status):
+        raw_data = self._wave_read.readframes(frames)
+        outframes = len(raw_data) // 4
+        data = numpy.frombuffer(raw_data, dtype="int16")
+        outdata[:][:outframes] = data.reshape((outframes, 2))
+
+        self._vu_left = numpy.average(numpy.abs(outdata[:,0])) / 65535.0 * 10
+        self._vu_right = numpy.average(numpy.abs(outdata[:,1])) / 65535.0 * 10
+        self._graph.append(min(1.0, max(self._vu_left, self._vu_right)))
+        self._graph = self._graph[-44:]
+
+        if outframes < frames:
+            self._playback_stopped()
+            raise sounddevice.CallbackStop
 
     def draw_text(self, x, y, text, font, w=480, h=None, alignment="left", vertical_alignment="top", color=COLOR_WHITE):
         tw, th = self._draw.textsize(text, font=font)
