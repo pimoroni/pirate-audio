@@ -2,6 +2,14 @@
 
 ## Installing
 
+### Pre-requisites
+
+Install the LADSPA plugins:
+
+```
+sudo apt install ladspa-sdk invada-studio-plugins-ladspa
+```
+
 ### Basic Audio Config
 
 Dual Mic needs some config to enable the microphone and boost the input gain.
@@ -68,3 +76,32 @@ arecord -Dmic_out -c2 -r48000 -fS32_LE -twav -d5 -R10000 -Vstereo test.wav
 ```
 
 The ASCII VU meter should correspond to what the microphone is picking up.
+
+## Preparing to run these examples
+
+### Install Pulseaudio
+
+Pulse audio supplies an "upmix" output device which allows `cliprecord.py` to play back lower samplerate (smaller) recording without handling resampling.
+
+```
+sudo apt install pulseaudio
+```
+
+### Enable SPI
+
+```
+sudo raspi-config nonint do_spi 0
+```
+
+### Install for Python 3
+
+```
+sudo apt install python3-pip python3-rpi.gpio python3-spidev python3-numpy python3-pil python3-pil.imagetk libportaudio2
+sudo python3 -m pip install fonts font-roboto ST7789 sounddevice
+```
+
+### Run
+
+```
+python3 cliprecord.py
+```
