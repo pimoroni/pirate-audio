@@ -181,7 +181,7 @@ class Recordamajig:
     def audio_callback(self, indata, frames, time, status):
         self._vu_left = numpy.average(numpy.abs(indata[:,0])) / 65535.0 * 10
         self._vu_right = numpy.average(numpy.abs(indata[:,1])) / 65535.0 * 10
-        print(self._vu_left, self._vu_right)
+        #print(self._vu_left, self._vu_right)
 
         self._graph.append(min(1.0, max(self._vu_left, self._vu_right)))
         self._graph = self._graph[-44:]
