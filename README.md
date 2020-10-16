@@ -8,7 +8,7 @@ Each board includes an ST7789 240x240 pixel LCD display, four buttons and some f
 ## Hardware
 
 * st7789 display - https://github.com/pimoroni/st7789-python
-* four buttons, active low connected to BCM 5, 6, 16, and 20 (A, B, X, Y respectively)
+* four buttons, active low connected to BCM 5, 6, 16, and 24 (A, B, X, Y respectively)
 
 ## Installation
 
