@@ -1,3 +1,4 @@
+#!/bin/bash
 DATESTAMP=`date "+%Y-%m-%d-%H-%M-%S"`
 ASOUND_CONFIG=$HOME/.asoundrc
 
