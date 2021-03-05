@@ -54,8 +54,8 @@ pcm.mic_rt{
     slave.pcm mic_hw
     ttable.0.0 1
     ttable.0.1 0
-    ttable.1.0 1
-    ttable.1.1 0
+    ttable.1.0 0
+    ttable.1.1 1
 }
 pcm.mic_plug {
     type plug
@@ -71,7 +71,7 @@ pcm.mic_filter {
         input {
 	    controls [
                 50   # Cut off frequency (Hz)
-                10   # Gain (dB)
+                30   # Gain (dB)
                 1    # Soft Clip (on/off)
             ]
 	}
