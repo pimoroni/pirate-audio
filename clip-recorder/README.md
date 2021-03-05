@@ -22,7 +22,7 @@ dtoverlay=adau7002-simple
 
 The following config uses a LADSPA plugin (Invada High-Pass Stero Filter) to remove DC bias and amplify the input from the microphone.
 
-Add it to `~/.asound.conf` or `/etc/asound.conf`:
+Add it to `~/.asoundrc` or `/etc/asound.conf`:
 
 ```
 pcm.mic_hw{
