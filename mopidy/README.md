@@ -103,11 +103,11 @@ If you're planning to use Spotify then you should also add the following, insert
 
 ```
 [spotify]
-enabled = false
-username = 
-password = 
-client_id = 
-client_secret = 
+enabled = true 
+username = << your username
+password = << your password
+client_id = << the paragraph below addresses your client_id 
+client_secret = << ...and your client secret
 ```
 
 To retrieve the client ID and secret you can authenticate with Spotify here: https://mopidy.com/ext/spotify/
