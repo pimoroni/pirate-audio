@@ -121,7 +121,7 @@ fi
 
 # Install support plugins for Pirate Audio
 inform "Installing Pirate Audio plugins..."
-$PIP_BIN install --upgrade Mopidy-PiDi pidi-display-pil pidi-display-st7789 mopidy-raspberry-gpio
+$PIP_BIN install --upgrade Mopidy-PiDi Mopidy-Local pidi-display-pil pidi-display-st7789 mopidy-raspberry-gpio
 echo
 
 # Reset mopidy.conf to its default state
