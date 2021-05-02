@@ -32,7 +32,7 @@ warning() {
 # Update apt and install dependencies
 inform "Updating apt and installing dependencies"
 apt update
-apt install -y python3-rpi.gpio python3-spidev python3-pip python3-pil python3-numpy
+apt install -y python3-rpi.gpio python3-spidev python3-pip python3-pil python3-numpy libopenjp2-7
 echo
 
 # Verify python version via pip
