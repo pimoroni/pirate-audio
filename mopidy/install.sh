@@ -32,7 +32,7 @@ warning() {
 # Update apt and install dependencies
 inform "Updating apt and installing dependencies"
 apt update
-apt install -y python3-rpi.gpio python3-spidev python3-pip python3-pil python3-numpy
+apt install -y python3-rpi.gpio python3-spidev python3-pip python3-pil python3-numpy libopenjp2-7
 echo
 
 # Verify python version via pip
@@ -121,7 +121,7 @@ fi
 
 # Install support plugins for Pirate Audio
 inform "Installing Pirate Audio plugins..."
-$PIP_BIN install --upgrade Mopidy-PiDi pidi-display-pil pidi-display-st7789 mopidy-raspberry-gpio
+$PIP_BIN install --upgrade Mopidy-PiDi Mopidy-Local pidi-display-pil pidi-display-st7789 mopidy-raspberry-gpio
 echo
 
 # Reset mopidy.conf to its default state
