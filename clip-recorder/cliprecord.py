@@ -35,7 +35,7 @@ def transparent(color, opacity=0.2):
     return r, g, b, opacity
 
 class Recordamajig:
-    def __init__(self, device="mic_out", output_device="upmix", samplerate=16000):
+    def __init__(self, device="mic_out", output_device="default", samplerate=16000):
         self._state = "initial"
         self._clip = 1
 
@@ -109,17 +109,19 @@ class Recordamajig:
     def play(self):
         if self._confirm_delete:
             self._confirm_delete = False
-            return
+            return False
         if self._recording:
-            return
+            return False
         if self._out_stream.stopped or not self._out_stream.active:
             self._playback_stopped()
             self._out_stream.stop()
             self._update_clip()
             self._out_stream.start()
+            return True
         else:
             self._out_stream.stop()
             self._playback_stopped()
+            return False
 
     def record(self):
         if self._confirm_delete:
@@ -365,7 +367,10 @@ def handle_keydown(e):
     if char in ("n", 6):       # B button
         recordamajig.next()
     if char in ("p", 16):      # X button
-        recordamajig.play()
+        if recordamajig.play():
+            print("Start playing...")
+        else:
+            print("Stop playing...")
 
 
 GPIO.setmode(GPIO.BCM)
