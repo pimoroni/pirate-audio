@@ -1,0 +1,77 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+    compatible = "brcm,bcm2835";
+
+    fragment@0 {
+        target = <&i2s>;
+        __overlay__ {
+            status = "okay";
+        };
+    };
+
+    fragment@1 {
+        target-path = "/";
+        __overlay__ {
+            pcm5102a_codec: pcm5102a-codec {
+                #sound-dai-cells = <0>;
+                compatible = "ti,pcm5102a";
+                status = "okay";
+            };
+        };
+    };
+
+    fragment@2 {
+        target-path = "/";
+        __overlay__ {
+                adau7002_codec: adau7002-codec {
+                #sound-dai-cells = <0>;
+                compatible = "adi,adau7002";
+/*                IOVDD-supply = <&supply>;*/
+                status = "okay";
+            };
+        };
+    };
+
+    fragment@3 {
+        target = <&sound>;
+            sound_overlay: __overlay__ {
+            compatible = "simple-audio-card";
+            simple-audio-card,format = "i2s";
+            simple-audio-card,name = "adau7002";
+            simple-audio-card,bitclock-slave = <&dailink1>;
+            simple-audio-card,frame-slave = <&dailink1>;
+            simple-audio-card,widgets =
+                    "Microphone", "Microphone Jack";
+            simple-audio-card,routing =
+                    "PDM_DAT", "Microphone Jack";
+            status = "okay";
+            dailink0: simple-audio-card,dai-link@0 {
+                reg = <0>;
+                format = "i2s";
+                cpu {
+                    sound-dai = <&i2s>;
+                };
+                codec {
+                    sound-dai = <&adau7002_codec>;
+                };
+            };
+            dailink1: simple-audio-card,dai-link@1 {
+                reg = <0>;
+                format = "i2s";
+                cpu {
+                    sound-dai = <&i2s>;
+                };
+                codec {
+                    sound-dai = <&pcm5102a_codec>;
+                };
+            };
+        };
+    };
+
+
+    __overrides__ {
+        card-name = <&sound_overlay>,"simple-audio-card,name";
+    };
+};
