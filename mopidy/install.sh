@@ -82,7 +82,9 @@ fi
 # Install apt list for Mopidy, see: https://docs.mopidy.com/en/latest/installation/debian/.
 if [ ! -f "/etc/apt/sources.list.d/mopidy.list" ]; then
   inform "Adding Mopidy apt source"
-  wget -q -O - https://apt.mopidy.com/mopidy.gpg | apt-key add -
+  mkdir -p /usr/local/share/keyrings
+  wget -q -O /usr/local/share/keyrings/mopidy-archive-keyring.gpg \
+    https://apt.mopidy.com/mopidy.gpg
   wget -q -O /etc/apt/sources.list.d/mopidy.list https://apt.mopidy.com/buster.list
   apt update
   echo
