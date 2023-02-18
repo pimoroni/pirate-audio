@@ -4,7 +4,7 @@ Note: This software is currently in beta and subject to change. Hopefully we'll 
 
 ## Installing
 
-Album art and track information display is supported on Pirate Audio boards using (Raspotify)[https://github.com/dtcooper/raspotify] and (PiDi Spotify)[https://github.com/pimoroni/pidi-spotify].
+Album art and track information display is supported on Pirate Audio boards using [Raspotify](https://github.com/dtcooper/raspotify) and [PiDi Spotify](https://github.com/pimoroni/pidi-spotify).
 
 Currently it's not possible to control Spotify.
 
