@@ -54,4 +54,5 @@ And then you'll need the st7789 library:
 sudo pip install st7789
 ```
 
-For more display examples see: https://github.com/pimoroni/st7789-python/tree/master/examples
+For more display examples see: https://github.com/pimoroni/st7789-python/tree/master/examples  
+Make sure your display software uses BCM pin 13 (not 18 or 19 as for the Breakout Garden version) for controlling the backlight, otherwise there will be no audio output ([reference](https://github.com/pimoroni/pirate-audio/issues/31#issuecomment-678313017)).
