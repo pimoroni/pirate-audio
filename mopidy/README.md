@@ -1,5 +1,6 @@
 # Pirate Audio Mopidy Setup
 
+:warning: Spotify support has been in turmoil for a while, and these instructions install mopidy-spotify from git, expect bugs until there is a stable release. See: https://github.com/mopidy/mopidy-spotify/issues/110
 
 ## Automatic Setup
 
@@ -46,8 +47,8 @@ sudo apt-get install python3-rpi.gpio python3-spidev python3-pip python3-pil pyt
 You can now install Mopidy. Both `mopidy-spotify` and `mopidy-iris` are optional. The former adds support for the music streaming service of the same name, and `iris` is a web interface for Mopidy that you'll no doubt find useful.
 
 ```
-sudo apt install mopidy mopidy-spotify
-sudo pip3 install mopidy-iris
+sudo python3 -m pip install git+https://github.com/mopidy/mopidy-spotify
+sudo python3 -m pip install mopidy-iris
 ```
 
 Iris uses a shell script to perform actions such as restarting Mopidy and scanning for local files (https://github.com/jaedb/Iris/blob/master/mopidy_iris/system.sh), it needs root privileges to do this which can be granted with sudoers like so (assuming your Python is version 3.7, you can find the dist-packages dir with `python3 -m site`):

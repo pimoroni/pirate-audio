@@ -91,9 +91,14 @@ if [ ! -f "/etc/apt/sources.list.d/mopidy.list" ]; then
 fi
 
 # Install Mopidy and core plugins for Spotify
-inform "Installing mopidy packages"
-apt-mark unhold mopidy mopidy-spotify
-apt install -y mopidy mopidy-spotify
+inform "Installing Mopidy packages"
+apt-mark unhold mopidy
+apt install -y mopidy
+echo
+
+
+inform "Insyalling Mopidy Spotify from GitHub"
+$PIP_BIN install --upgrade git+https://github.com/mopidy/mopidy-spotify
 echo
 
 # Install Mopidy Iris web UI
@@ -130,7 +135,7 @@ echo
 if [ $EXISTING_CONFIG ]; then
   warning "Resetting $MOPIDY_CONFIG to package defaults."
   inform "Any custom settings have been backed up to $MOPIDY_CONFIG.backup-$DATESTAMP"
-  apt install --reinstall -o Dpkg::Options::="--force-confask,confnew,confmiss" mopidy=$MOPIDY_VERSION > /dev/null 2>&1
+  apt install --reinstall -o Dpkg::Options::="--force-confask,confnew,confmiss" mopidy > /dev/null 2>&1
   echo
 fi
 
@@ -138,6 +143,7 @@ fi
 # Updated to only change necessary values, as per: https://github.com/pimoroni/pirate-audio/issues/1
 # Updated to *append* config values to mopidy.conf, as per: https://github.com/pimoroni/pirate-audio/issues/1#issuecomment-557556802
 inform "Configuring Mopidy"
+
 cat <<EOF >> $MOPIDY_CONFIG
 
 [raspberry-gpio]
