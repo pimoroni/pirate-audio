@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-# https://community.volumio.org/t/for-pimoroni-pirate-audio-device-users-python-code-to-unleash-the-power-of-your-hat/43702/28
+# Script from: https://community.volumio.org/t/for-pimoroni-pirate-audio-device-users-python-code-to-unleash-the-power-of-your-hat/43702/28
+# Tested with recent version of Pirate Audio Headphone Amp, https://github.com/bjohas, 2023-05-07
 
 import sys
 import logging
@@ -9,12 +10,12 @@ import logging
 import signal
 import RPi.GPIO as GPIO
 
-#print("""buttons.py - Detect which button has been pressed
-#This example should demonstrate how to:
-#1. set up RPi.GPIO to read buttons,
-#2. determine which button has been pressed
-#Press Ctrl+C to exit!
-#""")
+print("""buttons.py - Detect which button has been pressed
+This example should demonstrate how to:
+1. set up RPi.GPIO to read buttons,
+2. determine which button has been pressed
+Press Ctrl+C to exit!
+""")
 
 # The buttons on Pirate Audio are connected to pins 5, 6, 16 and 24
 # Boards prior to 23 January 2020 used 5, 6, 16 and 20 
