@@ -88,3 +88,9 @@ sudo pip3 install st7789
 
 ## Using the GPIO
 If you've not used the GPIO much, this script may be helpful:
+* [read_gpio_pins.py](read_gpio_pins.py).
+
+## Using the square display (240x240):
+The get started with the square display
+* [display_scrolling-text.py](display_scrolling-text.py)
+* [display_shapes.py](display_shapes.py)
