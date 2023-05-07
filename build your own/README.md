@@ -24,7 +24,7 @@ If you are on Raspberry Pi Zero, depending on how you use the display, you may w
 dtparam=act_led_trigger=none
 dtparam=act_led_activelow=on
 ```
-For other Raspberry Pi, please see: 
+For other Raspberry Pi, please see: https://mlagerberg.gitbooks.io/raspberry-pi/content/5.2-leds.html.
 
 ### Enable i2c and spi
 You need to enable i2c and spi. You can do this via `config.txt` or using `raspi-config`. If you want to set this up while you're editing `config.txt`, look for the lines below and remove the `#` from i2c and spi:
@@ -94,3 +94,13 @@ If you've not used the GPIO much, this script may be helpful:
 The get started with the square display, see [st7789 Python library examples](https://github.com/pimoroni/st7789-python/tree/master/examples), such as:
 * [display_scrolling-text.py](display_scrolling-text.py)
 * [display_shapes.py](display_shapes.py)
+
+## Things to note
+
+It's possible to turn the backlight of the display on/off. For example, with the above code, and `disp` initialised accordingly (`disp = ST7789.ST7789(...)`), the following command will turn off the backlight:
+```
+disp.set_backlight(0)
+```
+With the above libraries, it is not possible to dim the backlight. Hwoever, there are notes here on how this may be possible: https://github.com/pimoroni/st7789-python/issues/8/
+
+Then the Raspberry Pi is turned off, the display backlight seems to stay on/turn back on. I.e., the backlight seems to be powered, even if the Raspberry Pi is shut down.
