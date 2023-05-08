@@ -103,4 +103,5 @@ disp.set_backlight(0)
 ```
 With the above libraries, it is not possible to dim the backlight. Hwoever, there are notes here on how this may be possible: https://github.com/pimoroni/st7789-python/issues/8/
 
-Then the Raspberry Pi is turned off, the display backlight seems to stay on/turn back on. I.e., the backlight seems to be powered, even if the Raspberry Pi is shut down.
+Note that when Pi is powered down, the backlight comes back on. The backlight is turned off by a low signal on the backlight pin. When the Pi shuts down that pin is likely going to a floating state (not a low), thus the backlight goes back on, see [forum](https://forums.pimoroni.com/t/pirate-audio-headphone-amp-why-does-the-backlight-stay-on-when-the-raspberry-pi-is-powered-down/22126).
+
