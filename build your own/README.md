@@ -97,11 +97,22 @@ The get started with the square display, see [st7789 Python library examples](ht
 
 ## Things to note
 
+### Turning the backlight off while the Pi is running
 It's possible to turn the backlight of the display on/off. For example, with the above code, and `disp` initialised accordingly (`disp = ST7789.ST7789(...)`), the following command will turn off the backlight:
 ```
 disp.set_backlight(0)
 ```
 With the above libraries, it is not possible to dim the backlight. Hwoever, there are notes here on how this may be possible: https://github.com/pimoroni/st7789-python/issues/8/
 
-Note that when Pi is powered down, the backlight comes back on. The backlight is turned off by a low signal on the backlight pin. When the Pi shuts down that pin is likely going to a floating state (not a low), thus the backlight goes back on, see [forum](https://forums.pimoroni.com/t/pirate-audio-headphone-amp-why-does-the-backlight-stay-on-when-the-raspberry-pi-is-powered-down/22126).
+### Turning the backlight off when the Pi is powered down.
 
+Note that when Pi is powered down, the backlight comes back on. The backlight is turned off by a low signal on the backlight pin. When the Pi shuts down that pin is likely going to a floating state (not a low), thus the backlight goes back on, see [forum](https://forums.pimoroni.com/t/pirate-audio-headphone-amp-why-does-the-backlight-stay-on-when-the-raspberry-pi-is-powered-down/22126). 
+
+With the display configuration including `BACKLIGHT=13`, add the following text to `/boot/config.txt`:
+```
+dtoverlay=gpio-poweroff,gpiopin=13,active_low=1
+```
+This pulls the pin low for poweroff. It has the side effect that the Pi will no longer boot by pulling pins high. The documentation states that "Note that this will require the support of a custom dt-blob.bin to prevent a power-down during the boot process, and that a reboot will also cause the pin to go low." However, just making the above modification, the Pi does boot after power dis/re-connection.
+
+
+(See [overlays here](https://github.com/raspberrypi/firmware/blob/9f4983548584d4f70e6eec5270125de93a081483/boot/overlays/README#L758-L807).)
