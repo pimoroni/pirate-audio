@@ -92,8 +92,8 @@ fi
 
 # Install Mopidy and core plugins for Spotify
 inform "Installing mopidy packages"
-apt-mark unhold mopidy mopidy-spotify
-apt install -y mopidy mopidy-spotify
+apt-mark unhold mopidy
+apt install -y mopidy
 echo
 
 # Install Mopidy Iris web UI
