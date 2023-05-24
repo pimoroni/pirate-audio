@@ -83,7 +83,7 @@ fi
 if [ ! -f "/etc/apt/sources.list.d/mopidy.list" ]; then
   inform "Adding Mopidy apt source"
   mkdir -p /etc/apt/keyrings
-  wget -q -O /etc/keyrings/mopidy-archive-keyring.gpg \
+  wget -q -O /etc/apt/keyrings/mopidy-archive-keyring.gpg \
     https://apt.mopidy.com/mopidy.gpg
   wget -q -O /etc/apt/sources.list.d/mopidy.list https://apt.mopidy.com/bullseye.list
   apt update
@@ -92,8 +92,8 @@ fi
 
 # Install Mopidy and core plugins for Spotify
 inform "Installing mopidy packages"
-apt-mark unhold mopidy mopidy-spotify
-apt install -y mopidy mopidy-spotify
+apt-mark unhold mopidy
+apt install -y mopidy
 echo
 
 # Install Mopidy Iris web UI
