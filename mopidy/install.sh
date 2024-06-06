@@ -6,6 +6,7 @@ MOPIDY_SUDOERS="/etc/sudoers.d/010_mopidy-nopasswd"
 EXISTING_CONFIG=false
 PYTHON_MAJOR_VERSION=3
 PIP_BIN=pip3
+RPI_CONFIG="/boot/config.txt"
 
 function add_to_config_text {
     CONFIG_LINE="$1"
@@ -69,8 +70,9 @@ fi
 raspi-config nonint do_spi 0
 
 # Add necessary lines to config.txt (if they don't exist)
-add_to_config_text "gpio=25=op,dh" /boot/config.txt
-add_to_config_text "dtoverlay=hifiberry-dac" /boot/config.txt
+[ -f /boot/firmware/config.txt ] && RPI_CONFIG=/boot/firmware/config.txt
+add_to_config_text "gpio=25=op,dh" "$RPI_CONFIG"
+add_to_config_text "dtoverlay=hifiberry-dac" "$RPI_CONFIG"
 
 if [ -f "$MOPIDY_CONFIG" ]; then
   inform "Backing up mopidy config to: $MOPIDY_CONFIG.backup-$DATESTAMP"
