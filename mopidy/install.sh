@@ -3,6 +3,7 @@
 DATESTAMP=`date "+%Y-%m-%d-%H-%M-%S"`
 MOPIDY_CONFIG="/etc/mopidy/mopidy.conf"
 MOPIDY_SUDOERS="/etc/sudoers.d/010_mopidy-nopasswd"
+MOPIDY_DEFAULT_CONFIG="/usr/share/mopidy/conf.d/default.conf"
 EXISTING_CONFIG=false
 PYTHON_MAJOR_VERSION=3
 PIP_BIN=pip3
@@ -33,7 +34,7 @@ warning() {
 # Update apt and install dependencies
 inform "Updating apt and installing dependencies"
 sudo apt update
-sudo apt install -y python3-spidev python3-pip python3-pil python3-numpy python3-virtualenvwrapper virtualenvwrapper libopenjp2-7
+sudo apt install -y python3-spidev python3-pip python3-pil python3-numpy python3-lgpio python3-virtualenvwrapper virtualenvwrapper libopenjp2-7
 echo
 
 source $(dpkg -L virtualenvwrapper | grep virtualenvwrapper.sh)
@@ -117,24 +118,18 @@ inform "Installing Pirate Audio plugins..."
 $PIP_BIN install --upgrade Mopidy-PiDi Mopidy-Local pidi-display-pil pidi-display-st7789 mopidy-raspberry-gpio
 echo
 
-# Reset mopidy.conf to its default state
-if [ $EXISTING_CONFIG ]; then
-  warning "Resetting $MOPIDY_CONFIG to package defaults."
-  inform "Any custom settings have been backed up to $MOPIDY_CONFIG.backup-$DATESTAMP"
-  sudo apt install --reinstall -o Dpkg::Options::="--force-confask,confnew,confmiss" mopidy=$MOPIDY_VERSION > /dev/null 2>&1
-  echo
-fi
-
 # Append Pirate Audio specific defaults to mopidy.conf
 # Updated to only change necessary values, as per: https://github.com/pimoroni/pirate-audio/issues/1
 # Updated to *append* config values to mopidy.conf, as per: https://github.com/pimoroni/pirate-audio/issues/1#issuecomment-557556802
 inform "Configuring Mopidy"
 # Reset the config file
 sudo rm $MOPIDY_CONFIG
-mopidy config | sudo tee $MOPIDY_CONFIG
+sudo rm $MOPIDY_DEFAULT_CONFIG
+# Store a default fallback config, do we even need this?
+mopidy config | sudo tee $MOPIDY_DEFAULT_CONFIG
 # Add pirate audio customisations
-sudo mkdir -p /usr/share/mopidy/conf.d   
-cat <<EOF | sudo tee -a /usr/share/mopidy/conf.d/pirate-audio.conf
+sudo mkdir -p /usr/share/mopidy/conf.d
+cat <<EOF | sudo tee $MOPIDY_CONFIG
 
 [raspberry-gpio]
 enabled = true
@@ -146,7 +141,7 @@ bcm24 = volume_up,active_low,250
 
 [file]
 enabled = true
-media_dirs = /home/pi/Music
+media_dirs = /home/$MOPIDY_USER/Music
 show_dotfiles = false
 excluded_file_extensions =
   .directory
@@ -211,6 +206,7 @@ After=sound.target
 [Service]
 User=$MOPIDY_USER
 PermissionsStartOnly=true
+WorkingDirectory=/home/$MOPIDY_USER
 ExecStartPre=/bin/mkdir -p /var/cache/mopidy
 ExecStartPre=/bin/chown $MOPIDY_USER:audio /var/cache/mopidy
 ExecStart=$MOPIDY_BIN --config /usr/share/mopidy/conf.d:/etc/mopidy/mopidy.conf
