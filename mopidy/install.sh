@@ -6,13 +6,14 @@ MOPIDY_SUDOERS="/etc/sudoers.d/010_mopidy-nopasswd"
 EXISTING_CONFIG=false
 PYTHON_MAJOR_VERSION=3
 PIP_BIN=pip3
+MOPIDY_USER=$(whoami)
 
 function add_to_config_text {
     CONFIG_LINE="$1"
     CONFIG="$2"
-    sed -i "s/^#$CONFIG_LINE/$CONFIG_LINE/" $CONFIG
+    sudo sed -i "s/^#$CONFIG_LINE/$CONFIG_LINE/" $CONFIG
     if ! grep -q "$CONFIG_LINE" $CONFIG; then
-		printf "$CONFIG_LINE\n" >> $CONFIG
+		echo "$CONFIG_LINE\n" | sudo tee -a $CONFIG
     fi
 }
 
@@ -31,9 +32,15 @@ warning() {
 
 # Update apt and install dependencies
 inform "Updating apt and installing dependencies"
-apt update
-apt install -y python3-rpi.gpio python3-spidev python3-pip python3-pil python3-numpy libopenjp2-7
+sudo apt update
+sudo apt install -y python3-spidev python3-pip python3-pil python3-numpy python3-virtualenvwrapper virtualenvwrapper libopenjp2-7
 echo
+
+source $(dpkg -L virtualenvwrapper | grep virtualenvwrapper.sh)
+
+inform "Making virtual environment..."
+mkvirtualenv mopidy --system-site-packages
+workon mopidy
 
 # Verify python version via pip
 inform "Verifying python $PYTHON_MAJOR_VERSION.x version"
@@ -61,12 +68,12 @@ systemctl status mopidy > /dev/null 2>&1
 RESULT=$?
 if [ "$RESULT" == "0" ]; then
   inform "Stopping Mopidy service..."
-  systemctl stop mopidy
+  sudo systemctl stop mopidy
   echo
 fi
 
 # Enable SPI
-raspi-config nonint do_spi 0
+sudo raspi-config nonint do_spi 0
 
 # Add necessary lines to config.txt (if they don't exist)
 add_to_config_text "gpio=25=op,dh" /boot/config.txt
@@ -74,31 +81,15 @@ add_to_config_text "dtoverlay=hifiberry-dac" /boot/config.txt
 
 if [ -f "$MOPIDY_CONFIG" ]; then
   inform "Backing up mopidy config to: $MOPIDY_CONFIG.backup-$DATESTAMP"
-  cp "$MOPIDY_CONFIG" "$MOPIDY_CONFIG.backup-$DATESTAMP"
+  sudo cp "$MOPIDY_CONFIG" "$MOPIDY_CONFIG.backup-$DATESTAMP"
   EXISTING_CONFIG=true
   echo
 fi
 
-# Install apt list for Mopidy, see: https://docs.mopidy.com/en/latest/installation/debian/.
-if [ ! -f "/etc/apt/sources.list.d/mopidy.list" ]; then
-  inform "Adding Mopidy apt source"
-  mkdir -p /etc/apt/keyrings
-  wget -q -O /etc/apt/keyrings/mopidy-archive-keyring.gpg \
-    https://apt.mopidy.com/mopidy.gpg
-  wget -q -O /etc/apt/sources.list.d/mopidy.list https://apt.mopidy.com/bullseye.list
-  apt update
-  echo
-fi
+# Install Mopidy and Iris web UI
+inform "Installing Mopidy and Iris web UI"
+$PIP_BIN install --upgrade mopidy mopidy-iris
 
-# Install Mopidy and core plugins for Spotify
-inform "Installing mopidy packages"
-apt-mark unhold mopidy
-apt install -y mopidy
-echo
-
-# Install Mopidy Iris web UI
-inform "Installing Iris web UI for Mopidy"
-$PIP_BIN install --upgrade mopidy-iris
 echo
 
 # Allow Iris to run its system.sh script for https://github.com/pimoroni/pirate-audio/issues/3
@@ -117,7 +108,7 @@ if [ "$MOPIDY_SYSTEM_SH" == "" ]; then
   warning "Refusing to edit $MOPIDY_SUDOERS with empty system.sh path!"
 else
   inform "Adding $MOPIDY_SYSTEM_SH to $MOPIDY_SUDOERS"
-  echo "mopidy ALL=NOPASSWD: $MOPIDY_SYSTEM_SH" > $MOPIDY_SUDOERS
+  echo "mopidy ALL=NOPASSWD: $MOPIDY_SYSTEM_SH" | sudo tee -a $MOPIDY_SUDOERS
   echo
 fi
 
@@ -130,7 +121,7 @@ echo
 if [ $EXISTING_CONFIG ]; then
   warning "Resetting $MOPIDY_CONFIG to package defaults."
   inform "Any custom settings have been backed up to $MOPIDY_CONFIG.backup-$DATESTAMP"
-  apt install --reinstall -o Dpkg::Options::="--force-confask,confnew,confmiss" mopidy=$MOPIDY_VERSION > /dev/null 2>&1
+  sudo apt install --reinstall -o Dpkg::Options::="--force-confask,confnew,confmiss" mopidy=$MOPIDY_VERSION > /dev/null 2>&1
   echo
 fi
 
@@ -138,7 +129,12 @@ fi
 # Updated to only change necessary values, as per: https://github.com/pimoroni/pirate-audio/issues/1
 # Updated to *append* config values to mopidy.conf, as per: https://github.com/pimoroni/pirate-audio/issues/1#issuecomment-557556802
 inform "Configuring Mopidy"
-cat <<EOF >> $MOPIDY_CONFIG
+# Reset the config file
+sudo rm $MOPIDY_CONFIG
+mopidy config | sudo tee $MOPIDY_CONFIG
+# Add pirate audio customisations
+sudo mkdir -p /usr/share/mopidy/conf.d   
+cat <<EOF | sudo tee -a /usr/share/mopidy/conf.d/pirate-audio.conf
 
 [raspberry-gpio]
 enabled = true
@@ -193,7 +189,35 @@ echo
 # MAYBE?: Remove the sources.list to avoid any future issues with apt.mopidy.com failing
 # rm -f /etc/apt/sources.list.d/mopidy.list
 
-usermod -a -G spi,i2c,gpio,video mopidy
+sudo usermod -a -G spi,i2c,gpio,video mopidy
+
+inform "Installing Mopdify VirtualEnv Service"
+
+MOPIDY_BIN=$(which mopidy)
+inform "Found bin at $MOPIDY_BIN"
+
+cat << EOF | sudo tee /lib/systemd/system/mopidy.service
+[Unit]
+Description=Mopidy music server
+After=avahi-daemon.service
+After=dbus.service
+After=network-online.target
+Wants=network-online.target
+After=nss-lookup.target
+After=pulseaudio.service
+After=remote-fs.target
+After=sound.target
+
+[Service]
+User=$MOPIDY_USER
+PermissionsStartOnly=true
+ExecStartPre=/bin/mkdir -p /var/cache/mopidy
+ExecStartPre=/bin/chown $MOPIDY_USER:audio /var/cache/mopidy
+ExecStart=$MOPIDY_BIN --config /usr/share/mopidy/conf.d:/etc/mopidy/mopidy.conf
+
+[Install]
+WantedBy=multi-user.target
+EOF
 
 inform "Enabling and starting Mopidy"
 sudo systemctl enable mopidy
