@@ -1,9 +1,10 @@
 #!/bin/bash
 
 DATESTAMP=`date "+%Y-%m-%d-%H-%M-%S"`
-MOPIDY_CONFIG="/etc/mopidy/mopidy.conf"
+MOPIDY_CONFIG_DIR="$HOME/.config/mopidy"
+MOPIDY_CONFIG="$MOPIDY_CONFIG_DIR/mopidy.conf"
 MOPIDY_SUDOERS="/etc/sudoers.d/010_mopidy-nopasswd"
-MOPIDY_DEFAULT_CONFIG="/usr/share/mopidy/conf.d/default.conf"
+MOPIDY_DEFAULT_CONFIG="$MOPIDY_CONFIG_DIR/defaults.conf"
 EXISTING_CONFIG=false
 PYTHON_MAJOR_VERSION=3
 PIP_BIN=pip3
@@ -82,7 +83,7 @@ add_to_config_text "dtoverlay=hifiberry-dac" /boot/config.txt
 
 if [ -f "$MOPIDY_CONFIG" ]; then
   inform "Backing up mopidy config to: $MOPIDY_CONFIG.backup-$DATESTAMP"
-  sudo cp "$MOPIDY_CONFIG" "$MOPIDY_CONFIG.backup-$DATESTAMP"
+  cp "$MOPIDY_CONFIG" "$MOPIDY_CONFIG.backup-$DATESTAMP"
   EXISTING_CONFIG=true
   echo
 fi
@@ -124,16 +125,16 @@ echo
 inform "Configuring Mopidy"
 
 # Reset the config file
-sudo rm $MOPIDY_CONFIG
-sudo rm $MOPIDY_DEFAULT_CONFIG
+rm $MOPIDY_CONFIG
+rm $MOPIDY_DEFAULT_CONFIG
+
+mkdir -p $MOPIDY_CONFIG_DIR
 
 # Store a default fallback config, do we even need this?
-sudo mkdir -p /usr/share/mopidy/conf.d
-mopidy config | sudo tee $MOPIDY_DEFAULT_CONFIG
+mopidy config > $MOPIDY_DEFAULT_CONFIG
 
 # Add pirate audio customisations
-sudo mkdir -p /etc/mopidy
-cat <<EOF | sudo tee $MOPIDY_CONFIG
+cat <<EOF > $MOPIDY_CONFIG
 
 [raspberry-gpio]
 enabled = true
@@ -212,7 +213,7 @@ After=sound.target
 
 [Service]
 WorkingDirectory=/home/$MOPIDY_USER
-ExecStart=$MOPIDY_BIN --config /usr/share/mopidy/conf.d:/etc/mopidy/mopidy.conf
+ExecStart=$MOPIDY_BIN --config $MOPIDY_DEFAULT_CONFIG:$MOPIDY_CONFIG
 
 [Install]
 WantedBy=default.target
