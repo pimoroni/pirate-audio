@@ -65,11 +65,11 @@ fi
 echo
 
 # Stop mopidy if running
-systemctl status mopidy > /dev/null 2>&1
+systemctl --user status mopidy > /dev/null 2>&1
 RESULT=$?
 if [ "$RESULT" == "0" ]; then
   inform "Stopping Mopidy service..."
-  sudo systemctl stop mopidy
+  systemctl --user stop mopidy
   echo
 fi
 
@@ -122,13 +122,17 @@ echo
 # Updated to only change necessary values, as per: https://github.com/pimoroni/pirate-audio/issues/1
 # Updated to *append* config values to mopidy.conf, as per: https://github.com/pimoroni/pirate-audio/issues/1#issuecomment-557556802
 inform "Configuring Mopidy"
+
 # Reset the config file
 sudo rm $MOPIDY_CONFIG
 sudo rm $MOPIDY_DEFAULT_CONFIG
+
 # Store a default fallback config, do we even need this?
-mopidy config | sudo tee $MOPIDY_DEFAULT_CONFIG
-# Add pirate audio customisations
 sudo mkdir -p /usr/share/mopidy/conf.d
+mopidy config | sudo tee $MOPIDY_DEFAULT_CONFIG
+
+# Add pirate audio customisations
+sudo mkdir -p /etc/mopidy
 cat <<EOF | sudo tee $MOPIDY_CONFIG
 
 [raspberry-gpio]
@@ -170,7 +174,6 @@ hostname = 0.0.0.0
 
 [audio]
 mixer_volume = 40
-output = alsasink device=hw:sndrpihifiberry
 
 [spotify]
 enabled = false
@@ -188,10 +191,14 @@ sudo usermod -a -G spi,i2c,gpio,video mopidy
 
 inform "Installing Mopdify VirtualEnv Service"
 
+sudo mkdir -p /var/cache/mopidy
+sudo chown $MOPIDY_USER:audio /var/cache/mopidy
+mkdir -p $HOME/.config/systemd/user
+
 MOPIDY_BIN=$(which mopidy)
 inform "Found bin at $MOPIDY_BIN"
 
-cat << EOF | sudo tee /lib/systemd/system/mopidy.service
+cat << EOF > $HOME/.config/systemd/user/mopidy.service
 [Unit]
 Description=Mopidy music server
 After=avahi-daemon.service
@@ -204,20 +211,16 @@ After=remote-fs.target
 After=sound.target
 
 [Service]
-User=$MOPIDY_USER
-PermissionsStartOnly=true
 WorkingDirectory=/home/$MOPIDY_USER
-ExecStartPre=/bin/mkdir -p /var/cache/mopidy
-ExecStartPre=/bin/chown $MOPIDY_USER:audio /var/cache/mopidy
 ExecStart=$MOPIDY_BIN --config /usr/share/mopidy/conf.d:/etc/mopidy/mopidy.conf
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target
 EOF
 
 inform "Enabling and starting Mopidy"
-sudo systemctl enable mopidy
-sudo systemctl restart mopidy
+systemctl --user enable mopidy
+systemctl --user restart mopidy
 
 echo
 success "All done!"
