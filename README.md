@@ -61,3 +61,5 @@ sudo pip install st7789
 ```
 
 For more display examples see the [st7789 Python library examples](https://github.com/pimoroni/st7789-python/tree/master/examples).
+
+For more help with using the Pirate Audio Headphone Amp, see [build your own](build%20your%20own/README.md).
