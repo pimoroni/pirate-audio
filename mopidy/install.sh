@@ -9,6 +9,7 @@ EXISTING_CONFIG=false
 PYTHON_MAJOR_VERSION=3
 PIP_BIN=pip3
 MOPIDY_USER=$(whoami)
+MUSIC_DIR="$HOME/Music"
 
 function add_to_config_text {
     CONFIG_LINE="$1"
@@ -35,7 +36,36 @@ warning() {
 # Update apt and install dependencies
 inform "Updating apt and installing dependencies"
 sudo apt update
-sudo apt install -y python3-spidev python3-pip python3-pil python3-numpy python3-lgpio python3-virtualenvwrapper virtualenvwrapper libopenjp2-7
+
+# Comment out if you don't want to upgrade
+sudo apt upgrade -y
+
+# Install git and vim so the pimoroni pirate-audio repo can be copied (and b/c vim over nano any day :-) )
+# sudo apt-get install -y git vim
+
+sudo apt install -y \
+  python3-spidev \
+  python3-pip \
+  python3-pil \
+  python3-numpy \
+  python3-lgpio \
+  python3-virtualenvwrapper \
+  virtualenvwrapper \
+  libopenjp2-7 \
+  python3-gi \
+  libgstreamer1.0-0 \
+  libgstreamer1.0-dev \
+  gstreamer1.0-plugins-base \
+  gstreamer1.0-plugins-good \
+  gstreamer1.0-plugins-bad \
+  gstreamer1.0-plugins-ugly \
+  gstreamer1.0-tools \
+  gstreamer1.0-gl \
+  gstreamer1.0-gtk3
+
+sudo apt install python3-gst-1.0 gir1.2-gstreamer-1.0
+sudo apt install gstreamer1.0-pulseaudio gstreamer1.0-alsa
+
 echo
 
 source $(dpkg -L virtualenvwrapper | grep virtualenvwrapper.sh)
@@ -125,13 +155,16 @@ echo
 inform "Configuring Mopidy"
 
 # Reset the config file
-rm $MOPIDY_CONFIG
-rm $MOPIDY_DEFAULT_CONFIG
+rm -f $MOPIDY_CONFIG
+rm -f $MOPIDY_DEFAULT_CONFIG
 
 mkdir -p $MOPIDY_CONFIG_DIR
 
 # Store a default fallback config, do we even need this?
 mopidy config > $MOPIDY_DEFAULT_CONFIG
+
+# Create a directory to hold local music
+mkdir -p $MUSIC_DIR
 
 # Add pirate audio customisations
 cat <<EOF > $MOPIDY_CONFIG
@@ -146,7 +179,7 @@ bcm24 = volume_up,active_low,250
 
 [file]
 enabled = true
-media_dirs = /home/$MOPIDY_USER/Music
+media_dirs = $MUSIC_DIR
 show_dotfiles = false
 excluded_file_extensions =
   .directory
@@ -161,6 +194,9 @@ excluded_file_extensions =
   .zip
 follow_symlinks = false
 metadata_timeout = 1000
+
+[local]
+media_dir = $MUSIC_DIR
 
 [pidi]
 enabled = true
@@ -188,7 +224,7 @@ echo
 # MAYBE?: Remove the sources.list to avoid any future issues with apt.mopidy.com failing
 # rm -f /etc/apt/sources.list.d/mopidy.list
 
-sudo usermod -a -G spi,i2c,gpio,video mopidy
+sudo usermod -a -G spi,i2c,gpio,video $MOPIDY_USER
 
 inform "Installing Mopdify VirtualEnv Service"
 
