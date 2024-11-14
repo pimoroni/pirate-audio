@@ -1,10 +1,11 @@
 #!/bin/bash
 
-DATESTAMP=`date "+%Y-%m-%d-%H-%M-%S"`
+DATESTAMP=$(date "+%Y-%m-%d-%H-%M-%S")
 MOPIDY_CONFIG_DIR="$HOME/.config/mopidy"
 MOPIDY_CONFIG="$MOPIDY_CONFIG_DIR/mopidy.conf"
 MOPIDY_SUDOERS="/etc/sudoers.d/010_mopidy-nopasswd"
 MOPIDY_DEFAULT_CONFIG="$MOPIDY_CONFIG_DIR/defaults.conf"
+CONFIG_TXT="/boot/firmware/config.txt"
 EXISTING_CONFIG=false
 PYTHON_MAJOR_VERSION=3
 PIP_BIN=pip3
@@ -14,9 +15,9 @@ MUSIC_DIR="$HOME/Music"
 function add_to_config_text {
     CONFIG_LINE="$1"
     CONFIG="$2"
-    sudo sed -i "s/^#$CONFIG_LINE/$CONFIG_LINE/" $CONFIG
-    if ! grep -q "$CONFIG_LINE" $CONFIG; then
-		echo "$CONFIG_LINE\n" | sudo tee -a $CONFIG
+    sudo sed -i "s/^#$CONFIG_LINE/$CONFIG_LINE/" "$CONFIG"
+    if ! grep -q "$CONFIG_LINE" "$CONFIG"; then
+		printf "%s\n" "$CONFIG_LINE" | sudo tee -a "$CONFIG"
     fi
 }
 
@@ -31,6 +32,15 @@ inform() {
 warning() {
 	echo -e "$(tput setaf 1)$1$(tput sgr0)"
 }
+
+fatal() {
+	echo -e "$(tput setaf 1)⚠ FATAL: $(tput sgr0) $1"
+	exit 1
+}
+
+if [ "$(id -u)" -eq 0 ]; then
+  fatal "Script should not be run as root. Try: './install.sh'\n"
+fi
 
 
 # Update apt and install dependencies
@@ -63,8 +73,8 @@ sudo apt install -y \
   gstreamer1.0-gl \
   gstreamer1.0-gtk3
 
-sudo apt install python3-gst-1.0 gir1.2-gstreamer-1.0
-sudo apt install gstreamer1.0-pulseaudio gstreamer1.0-alsa
+sudo apt install -y python3-gst-1.0 gir1.2-gstreamer-1.0
+sudo apt install -y gstreamer1.0-pulseaudio gstreamer1.0-alsa
 
 echo
 
@@ -77,10 +87,10 @@ workon mopidy
 # Verify python version via pip
 inform "Verifying python $PYTHON_MAJOR_VERSION.x version"
 PIP_CHECK="$PIP_BIN --version"
-VERSION=`$PIP_CHECK | sed s/^.*\(python[\ ]*// | sed s/.$//`
+VERSION=$($PIP_CHECK | sed s/^.*\(python[\ ]*// | sed s/.$//)
 RESULT=$?
 if [ "$RESULT" == "0" ]; then
-  MAJOR_VERSION=`echo $VERSION | awk -F. {'print $1'}`
+  MAJOR_VERSION=$(echo "$VERSION" | awk -F. '{print $1}')
   if [ "$MAJOR_VERSION" -eq "$PYTHON_MAJOR_VERSION" ]; then
     success "Found Python $VERSION"
   else
@@ -108,8 +118,8 @@ fi
 sudo raspi-config nonint do_spi 0
 
 # Add necessary lines to config.txt (if they don't exist)
-add_to_config_text "gpio=25=op,dh" /boot/config.txt
-add_to_config_text "dtoverlay=hifiberry-dac" /boot/config.txt
+add_to_config_text "gpio=25=op,dh" "$CONFIG_TXT"
+add_to_config_text "dtoverlay=hifiberry-dac" "$CONFIG_TXT"
 
 if [ -f "$MOPIDY_CONFIG" ]; then
   inform "Backing up mopidy config to: $MOPIDY_CONFIG.backup-$DATESTAMP"
@@ -128,11 +138,12 @@ echo
 # This script backs Iris UI buttons for local scan and server restart.
 
 # Get location of Iris's system.sh
-MOPIDY_SYSTEM_SH=`python$PYTHON_MAJOR_VERSION - <<EOF
+MOPIDY_SYSTEM_SH=$(python$PYTHON_MAJOR_VERSION - <<EOF
 import pkg_resources
 distribution = pkg_resources.get_distribution('mopidy_iris')
 print(f"{distribution.location}/mopidy_iris/system.sh")
-EOF`
+EOF
+)
 
 # Add it to sudoers
 if [ "$MOPIDY_SYSTEM_SH" == "" ]; then
@@ -155,19 +166,19 @@ echo
 inform "Configuring Mopidy"
 
 # Reset the config file
-rm -f $MOPIDY_CONFIG
-rm -f $MOPIDY_DEFAULT_CONFIG
+rm -f "$MOPIDY_CONFIG"
+rm -f "$MOPIDY_DEFAULT_CONFIG"
 
-mkdir -p $MOPIDY_CONFIG_DIR
+mkdir -p "$MOPIDY_CONFIG_DIR"
 
 # Store a default fallback config, do we even need this?
-mopidy config > $MOPIDY_DEFAULT_CONFIG
+mopidy config > "$MOPIDY_DEFAULT_CONFIG"
 
 # Create a directory to hold local music
-mkdir -p $MUSIC_DIR
+mkdir -p "$MUSIC_DIR"
 
 # Add pirate audio customisations
-cat <<EOF > $MOPIDY_CONFIG
+cat <<EOF > "$MOPIDY_CONFIG"
 
 [raspberry-gpio]
 enabled = true
@@ -224,18 +235,18 @@ echo
 # MAYBE?: Remove the sources.list to avoid any future issues with apt.mopidy.com failing
 # rm -f /etc/apt/sources.list.d/mopidy.list
 
-sudo usermod -a -G spi,i2c,gpio,video $MOPIDY_USER
+sudo usermod -a -G spi,i2c,gpio,video "$MOPIDY_USER"
 
 inform "Installing Mopdify VirtualEnv Service"
 
 sudo mkdir -p /var/cache/mopidy
-sudo chown $MOPIDY_USER:audio /var/cache/mopidy
-mkdir -p $HOME/.config/systemd/user
+sudo chown "$MOPIDY_USER:audio" /var/cache/mopidy
+mkdir -p "$HOME/.config/systemd/user"
 
 MOPIDY_BIN=$(which mopidy)
 inform "Found bin at $MOPIDY_BIN"
 
-cat << EOF > $HOME/.config/systemd/user/mopidy.service
+cat << EOF > "$HOME/.config/systemd/user/mopidy.service"
 [Unit]
 Description=Mopidy music server
 After=avahi-daemon.service
@@ -262,12 +273,12 @@ systemctl --user restart mopidy
 echo
 success "All done!"
 if [ $EXISTING_CONFIG ]; then
-  diff $MOPIDY_CONFIG $MOPIDY_CONFIG.backup-$DATESTAMP > /dev/null 2>&1
+  diff "$MOPIDY_CONFIG" "$MOPIDY_CONFIG.backup-$DATESTAMP" > /dev/null 2>&1
   RESULT=$?
   if [ ! $RESULT == "0" ]; then
     warning "Mopidy configuration has changed, see summary below and make sure to update $MOPIDY_CONFIG!"
     inform "Your previous configuration was backed up to $MOPIDY_CONFIG.backup-$DATESTAMP"
-    diff $MOPIDY_CONFIG $MOPIDY_CONFIG.backup-$DATESTAMP
+    diff "$MOPIDY_CONFIG" "$MOPIDY_CONFIG.backup-$DATESTAMP"
   else
     echo "Don't forget to edit $MOPIDY_CONFIG with your preferences and/or Spotify config."
   fi
