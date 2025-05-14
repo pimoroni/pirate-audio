@@ -66,7 +66,7 @@ source ~/.virtualenvs/mopidy/bin/activate
 
 ### Installing Mopidy and Iris
 
-You can now install Mopidy. Both `mopidy-spotify` and `mopidy-iris` are optional. The former adds support for the music streaming service of the same name, and `iris` is a web interface for Mopidy that you'll no doubt find useful.
+You can now install Mopidy. `mopidy-iris`  is optional - it is a web interface for Mopidy that you'll no doubt find useful.
 
 ```
 pip3 install mopidy mopidy-iris
@@ -131,7 +131,7 @@ client_id = << the paragraph below addresses your client_id
 client_secret = << ...and your client secret
 ```
 
-The `mopidy-spotify` plugin currently requires manual installation: https://github.com/mopidy/mopidy-spotify
+Note that the `mopidy-spotify` plugin currently requires manual installation: https://github.com/mopidy/mopidy-spotify
 
 To retrieve the client ID and secret you can authenticate with Spotify here: https://mopidy.com/ext/spotify/.
 
