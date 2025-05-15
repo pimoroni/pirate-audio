@@ -225,8 +225,6 @@ mixer_volume = 40
 
 [spotify]
 enabled = false
-username =
-password =
 client_id =
 client_secret =
 EOF

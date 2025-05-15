@@ -1,36 +1,28 @@
 # Pirate Audio Mopidy Setup
 
-
 ## Automatic Setup
 
-You'll need a fresh install of Raspbian Buster.
+You'll need to be running Raspberry Pi OS Bookworm or later, and we recommend starting with a fresh install.
 
 If you're setting up Mopidy on an existing system you might want to choose the step-by-step manual install instead.
 
-The provided `install.sh` script executes the manual steps for you.
+The provided install.sh script executes the manual steps for you.
 
-If you're running Raspbian Buster Lite you might first need to `sudo apt install git`.
+If you're running the Lite version of Raspberry Pi OS you might first need to `sudo apt install git`.
 
 ```
 git clone https://github.com/pimoroni/pirate-audio
 cd pirate-audio/mopidy
-sudo ./install.sh
+./install.sh
 ```
+
+Note that due to Spotify discontinuing their API, the `mopidy-spotify` plugin currently requires manual installation: https://github.com/mopidy/mopidy-spotify
 
 ## Manual Setup
 
-First, make sure you have SPI enabled on your Raspberry Pi. You can run `sudo raspi-config` and set this up in interfacing options, or add `dtparam=spi=on` to your `/boot/config.txt`.
+First, make sure you have SPI enabled on your Raspberry Pi. You can run `sudo raspi-config` and set this up in interfacing options, or add `dtparam=spi=on` to your `/boot/firmware/config.txt`.
 
-Double check you have the lines `dtoverlay=hifiberry-dac` and `gpio=25=op,dh` in your `/boot/config.txt` since these enable the DAC for audio output.
-
-### Mopidy Apt List
-
-First you'll need to install Mopidy's package source as detailed in the installation instructions: https://docs.mopidy.com/en/latest/installation/debian/.
-
-```
-wget -q -O - https://apt.mopidy.com/mopidy.gpg | sudo apt-key add -
-sudo wget -q -O /etc/apt/sources.list.d/mopidy.list https://apt.mopidy.com/buster.list
-```
+Double check you have the lines `dtoverlay=hifiberry-dac` and `gpio=25=op,dh` in your `/boot/firmware/config.txt` since these enable the DAC for audio output.
 
 ### Dependencies
 
@@ -38,16 +30,46 @@ Next, update apt and install the necessary dependencies:
 
 ```
 sudo apt update
-sudo apt-get install python3-rpi.gpio python3-spidev python3-pip python3-pil python3-numpy
+sudo apt install -y \
+  python3-spidev \
+  python3-pip \
+  python3-pil \
+  python3-numpy \
+  python3-lgpio \
+  python3-virtualenvwrapper \
+  virtualenvwrapper \
+  libopenjp2-7 \
+  python3-gi \
+  libgstreamer1.0-0 \
+  libgstreamer1.0-dev \
+  gstreamer1.0-plugins-base \
+  gstreamer1.0-plugins-good \
+  gstreamer1.0-plugins-bad \
+  gstreamer1.0-plugins-ugly \
+  gstreamer1.0-tools \
+  gstreamer1.0-gl \
+  gstreamer1.0-gtk3 \
+  python3-gst-1.0 \
+  gir1.2-gstreamer-1.0 \
+  gstreamer1.0-pulseaudio \
+  gstreamer1.0-alsa
 ```
 
-### Mopidy with Spotify and Iris
+### Set up virtual environment
 
-You can now install Mopidy. Both `mopidy-spotify` and `mopidy-iris` are optional. The former adds support for the music streaming service of the same name, and `iris` is a web interface for Mopidy that you'll no doubt find useful.
+Recent versions of Raspberry Pi OS require you to install Python packages into a virtual environment. You can set up and activate one with:
+
+``` bash
+python3 -m venv --system-site-packages $HOME/.virtualenvs/mopidy
+source ~/.virtualenvs/mopidy/bin/activate
+```
+
+### Installing Mopidy and Iris
+
+You can now install Mopidy. `mopidy-iris`  is optional - it is a web interface for Mopidy that you'll no doubt find useful.
 
 ```
-sudo apt install mopidy mopidy-spotify
-sudo pip3 install mopidy-iris
+pip3 install mopidy mopidy-iris
 ```
 
 Iris uses a shell script to perform actions such as restarting Mopidy and scanning for local files (https://github.com/jaedb/Iris/blob/master/mopidy_iris/system.sh), it needs root privileges to do this which can be granted with sudoers like so (assuming your Python is version 3.7, you can find the dist-packages dir with `python3 -m site`):
@@ -61,7 +83,7 @@ echo "mopidy ALL=NOPASSWD: /usr/local/lib/python3.7/dist-packages/mopidy_iris/sy
 Next, install the plugins to get Pirate Audio up and running:
 
 ```
-sudo pip3 install Mopidy-PiDi pidi-display-pil pidi-display-st7789 mopidy-raspberry-gpio
+pip3 install Mopidy-PiDi pidi-display-pil pidi-display-st7789 mopidy-raspberry-gpio
 ```
 
 ### Config File & Tweaks
@@ -69,22 +91,24 @@ sudo pip3 install Mopidy-PiDi pidi-display-pil pidi-display-st7789 mopidy-raspbe
 To use Mopidy as a service, create a new `mopidy.conf` which you will then populate with custom settings.
 
 ```
-sudo touch /etc/mopidy/mopidy.conf
+sudo touch ~/.config/mopidy/mopidy.conf
 ```
 
-You should then use `sudo nano` (or `vim` if you prefer) to edit `/etc/mopidy/mopidy.conf` and add the following:
+You should then use `sudo nano` (or `vim` if you prefer) to edit `~/.config/mopidy/mopidy.conf` and add the following:
 
 ```
 [raspberry-gpio]
 enabled = true
-bcm5 = play_pause,active_low,150
-bcm6 = volume_down,active_low,150
-bcm16 = next,active_low,150
-bcm20 = volume_up,active_low,150
+bcm5 = play_pause,active_low,250
+bcm6 = volume_down,active_low,250
+bcm16 = next,active_low,250
+bcm20 = volume_up,active_low,250
+bcm24 = volume_up,active_low,250
 
 [pidi]
 enabled = true
 display = st7789
+rotation = 90
 
 [mpd]
 hostname = 0.0.0.0
@@ -94,23 +118,22 @@ hostname = 0.0.0.0
 
 [audio]
 mixer_volume = 40
-output = alsasink
 ```
 
 This will set up the plugins required for Pirate Audio and additionally configure Mopidy to use alsa so that audio is output via the DAC. It also changes the hostname for `mpd` and `http` to `0.0.0.0` (bind to all addresses) which makes them both accessible to other devices on your network. You can substitute your devices static IP if you want to use a specific interface.
 
-If you're planning to use Spotify then you should also add the following, inserting your login details, client ID and secret where appropriate:
+If you're planning to use Spotify then you should also add the following, inserting your client ID and secret where appropriate:
 
 ```
 [spotify]
 enabled = true 
-username = << your username
-password = << your password
 client_id = << the paragraph below addresses your client_id 
 client_secret = << ...and your client secret
 ```
 
-To retrieve the client ID and secret you can authenticate with Spotify here: https://mopidy.com/ext/spotify/
+Note that the `mopidy-spotify` plugin currently requires manual installation: https://github.com/mopidy/mopidy-spotify
+
+To retrieve the client ID and secret you can authenticate with Spotify here: https://mopidy.com/ext/spotify/.
 
 ### Set Up The Service
 
@@ -145,8 +168,10 @@ sudo apt update
 sudo apt upgrade
 ```
 
-The Mopidy plugins installed via Python's `pip` have to be updated separately:
+The software installed via Python's `pip` has to be updated separately:
+
+After activating your virtual environment:
 
 ```
-sudo pip3 install --upgrade mopidy-iris Mopidy-PiDi pidi-display-pil pidi-display-st7789 mopidy-raspberry-gpio
+pip3 install --upgrade mopidy mopidy-iris Mopidy-PiDi pidi-display-pil pidi-display-st7789 mopidy-raspberry-gpio
 ```
