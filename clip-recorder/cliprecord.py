@@ -35,7 +35,7 @@ def transparent(color, opacity=0.2):
     return r, g, b, opacity
 
 class Recordamajig:
-    def __init__(self, device="default", output_device="default", samplerate=16000):
+    def __init__(self, device="mic_out", output_device="default", samplerate=48000):
         self._state = "initial"
         self._clip = 1
 
