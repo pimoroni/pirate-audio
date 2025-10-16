@@ -18,6 +18,8 @@ cd pirate-audio/mopidy
 
 Note that due to Spotify discontinuing their API, the `mopidy-spotify` plugin currently requires manual installation: https://github.com/mopidy/mopidy-spotify
 
+If you want the Mopidy service to start when the Pi boots (rather than when the user logs in), try running `sudo loginctl enable-linger`.
+
 ## Manual Setup
 
 First, make sure you have SPI enabled on your Raspberry Pi. You can run `sudo raspi-config` and set this up in interfacing options, or add `dtparam=spi=on` to your `/boot/firmware/config.txt`.
@@ -155,6 +157,8 @@ To check if everything is running correctly, try:
 ```
 sudo systemctl status mopidy
 ```
+
+If you want the Mopidy service to start when the Pi boots (rather than when the user logs in), try running `sudo loginctl enable-linger`.
 
 
 ## Updating
