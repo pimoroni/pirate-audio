@@ -2,7 +2,7 @@
 
 ## Automatic Setup
 
-You'll need to be running Raspberry Pi OS Bookworm or later, and we recommend starting with a fresh install.
+We recommend using Raspberry Pi OS Bookworm and starting with a fresh install.
 
 If you're setting up Mopidy on an existing system you might want to choose the step-by-step manual install instead.
 
