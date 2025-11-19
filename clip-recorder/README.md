@@ -97,8 +97,21 @@ sudo raspi-config nonint do_spi 0
 
 ```
 sudo apt install python3-pip python3-rpi.gpio python3-spidev python3-numpy python3-pil python3-pil.imagetk libportaudio2
-sudo python3 -m pip install fonts font-roboto ST7789 sounddevice
 ```
+
+### Create Python Virtual Environment
+
+First, [install `uv`](https://docs.astral.sh/uv/getting-started/installation/), a fast Python package manager.
+
+Then, create a virtual environment linked to the system's Python and install the required packages:
+
+```
+uv venv --system-site-packages
+source .venv/bin/activate
+uv pip install fonts font-roboto st7789 sounddevice
+```
+
+Note: Installing Python packages via `sudo pip install` is deprecated on Raspberry Pi, as it can cause permission issues.
 
 ### Run
 
