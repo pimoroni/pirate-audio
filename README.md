@@ -31,6 +31,16 @@ dtoverlay=adau7002-simple
 ```
 (See [Clip Recorder](./clip-recorder) for further example of use.)
 
+If you want to have the LCD accessible via a Frame Buffer (`/dev/fb0`/`/dev/fb1`) add:
+
+```
+# Uncommend the following
+dtparam=spi=on
+
+# Add this
+dtoverlay=fbtft,spi0-1,speed=80000000,st7789v,height=240,width=240,dc_pin=9,led_pin=13
+```
+
 ## Using with Spotify Connect
 
 If you want to display album art and track information on your Pirate Audio LCD then check out [PiDi Spotify](https://github.com/pimoroni/pidi-spotify).
