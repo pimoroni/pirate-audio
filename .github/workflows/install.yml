@@ -11,16 +11,24 @@ permissions:
 
 jobs:
   trixie:
-    name: mopidy/install.sh on Raspberry Pi OS Trixie
+    name: ${{ matrix.name }} on Raspberry Pi OS Trixie
     runs-on: ubuntu-24.04-arm
     container:
       image: debian:trixie-slim
     env:
       TERM: xterm-256color
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: mopidy/install.sh
+            test: install-trixie.sh
+          - name: clip-recorder/install.sh
+            test: install-clip-recorder-trixie.sh
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v5
 
       - name: Run the install test
-        run: bash tests/install-trixie.sh "$GITHUB_WORKSPACE"
+        run: bash "tests/${{ matrix.test }}" "$GITHUB_WORKSPACE"
