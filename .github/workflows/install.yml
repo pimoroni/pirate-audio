@@ -1,0 +1,26 @@
+name: Install Test
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: read
+
+jobs:
+  trixie:
+    name: mopidy/install.sh on Raspberry Pi OS Trixie
+    runs-on: ubuntu-24.04-arm
+    container:
+      image: debian:trixie-slim
+    env:
+      TERM: xterm-256color
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v5
+
+      - name: Run the install test
+        run: bash tests/install-trixie.sh "$GITHUB_WORKSPACE"

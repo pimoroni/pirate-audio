@@ -1,0 +1,24 @@
+name: QA
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: read
+
+jobs:
+  shellcheck:
+    name: ShellCheck
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v5
+
+      - name: Run ShellCheck
+        run: |
+          shellcheck --version
+          find . -name '*.sh' -print0 | xargs -0 shellcheck
