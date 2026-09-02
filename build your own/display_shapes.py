@@ -5,7 +5,7 @@ from PIL import Image
 from PIL import ImageDraw
 from PIL import ImageFont
 
-import ST7789
+import st7789
 
 print("""
 shapes.py - Display test shapes on the LCD using PIL.
@@ -31,11 +31,11 @@ except IndexError:
 # Create ST7789 LCD display class.
 
 if display_type in ("square", "rect", "round"):
-    disp = ST7789.ST7789(
+    disp = st7789.ST7789(
         height=135 if display_type == "rect" else 240,
         rotation=0 if display_type == "rect" else 90,
         port=0,
-        cs=ST7789.BG_SPI_CS_FRONT,  # BG_SPI_CS_BACK or BG_SPI_CS_FRONT
+        cs=st7789.BG_SPI_CS_FRONT,  # BG_SPI_CS_BACK or BG_SPI_CS_FRONT
         dc=9,
         backlight=19,               # 18 for back BG slot, 19 for front BG slot.
         spi_speed_hz=80 * 1000 * 1000,
@@ -44,7 +44,7 @@ if display_type in ("square", "rect", "round"):
     )
 
 elif display_type == "dhmini":
-    disp = ST7789.ST7789(
+    disp = st7789.ST7789(
         height=240,
         width=320,
         rotation=180,

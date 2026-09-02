@@ -18,7 +18,10 @@ I compiled with:
 
 You must also have `dbus-python` installed:
 
-    python3 -m pip install dbus-python
+    sudo apt install python3-dbus
+
+If you're running from a virtual environment, create it with `--system-site-packages`
+so it can see the apt-installed dbus bindings.
 
 Controls can be a little slow- there's a lot going on here. Be patient!
 

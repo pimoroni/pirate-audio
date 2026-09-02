@@ -3,7 +3,7 @@
 import time
 from colorsys import hsv_to_rgb
 from PIL import Image, ImageDraw
-from ST7789 import ST7789
+from st7789 import ST7789
 
 
 print("""rainbow.py - Display a rainbow on the Pirate Audio LCD

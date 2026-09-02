@@ -1,25 +1,77 @@
 #!/bin/bash
 
+CONFIG_FILE=config.txt
+CONFIG_DIR="/boot/firmware"
 DATESTAMP=$(date "+%Y-%m-%d-%H-%M-%S")
+CONFIG_BACKUP=false
+APT_HAS_UPDATED=false
+RESOURCES_TOP_DIR="$HOME/Pimoroni"
+RESOURCES_DIR="$RESOURCES_TOP_DIR/pirate-audio"
+UNINSTALLER="$RESOURCES_DIR/uninstall.sh"
+VENV_DIR="$HOME/.virtualenvs/mopidy"
+PYTHON="$VENV_DIR/bin/python"
+MOPIDY_USER=$(whoami)
 MOPIDY_CONFIG_DIR="$HOME/.config/mopidy"
 MOPIDY_CONFIG="$MOPIDY_CONFIG_DIR/mopidy.conf"
 MOPIDY_SUDOERS="/etc/sudoers.d/010_mopidy-nopasswd"
-MOPIDY_DEFAULT_CONFIG="$MOPIDY_CONFIG_DIR/defaults.conf"
-CONFIG_TXT="/boot/firmware/config.txt"
-EXISTING_CONFIG=false
-PYTHON_MAJOR_VERSION=3
-PIP_BIN=pip3
-MOPIDY_USER=$(whoami)
 MUSIC_DIR="$HOME/Music"
+SERVICE_DIR="$HOME/.config/systemd/user"
+SERVICE_FILE="$SERVICE_DIR/mopidy.service"
+GITHUB_URL="https://github.com/pimoroni/pirate-audio"
+USAGE="./install.sh (--force) (--no-upgrade)"
+EXISTING_CONFIG=false
+FORCE=false
+DO_UPGRADE=true
+CMD_ERRORS=false
 
-function add_to_config_text {
-    CONFIG_LINE="$1"
-    CONFIG="$2"
-    sudo sed -i "s/^#$CONFIG_LINE/$CONFIG_LINE/" "$CONFIG"
-    if ! grep -q "$CONFIG_LINE" "$CONFIG"; then
-		printf "%s\n" "$CONFIG_LINE" | sudo tee -a "$CONFIG"
-    fi
-}
+APT_PACKAGES=(
+	gir1.2-gstreamer-1.0
+	gstreamer1.0-alsa
+	gstreamer1.0-gl
+	gstreamer1.0-gtk3
+	gstreamer1.0-plugins-bad
+	gstreamer1.0-plugins-base
+	gstreamer1.0-plugins-good
+	gstreamer1.0-plugins-ugly
+	gstreamer1.0-pulseaudio
+	gstreamer1.0-tools
+	libgstreamer1.0-0
+	libopenblas0
+	libopenjp2-7
+	python3-dev
+	python3-gi
+	python3-gst-1.0
+	python3-lgpio
+	python3-numpy
+	python3-pil
+	python3-pip
+	python3-rpi-lgpio
+	python3-spidev
+	python3-venv
+)
+
+# Mopidy 4 is a breaking release: it drops pkg_resources for
+# importlib.metadata and moves to Pykka 4. Mopidy-PiDi, Mopidy-Iris and
+# Mopidy-Raspberry-GPIO have not been ported, so pin the Mopidy 3 stack.
+# setuptools >= 82 no longer ships pkg_resources, which Mopidy 3 needs.
+PIP_PACKAGES=(
+	"mopidy>=3.4.2,<4"
+	"pykka>=3.1,<4"
+	"setuptools<82"
+	"mopidy-iris"
+	"mopidy-local<4"
+	"mopidy-pidi"
+	"mopidy-raspberry-gpio"
+	"pidi-display-pil"
+	"pidi-display-st7789"
+)
+
+CONFIG_TXT=(
+	"dtparam=spi=on"
+	"dtoverlay=hifiberry-dac"
+	"dtparam=audio=off"
+	"gpio=25=op,dh"
+)
 
 success() {
 	echo -e "$(tput setaf 2)$1$(tput sgr0)"
@@ -30,161 +82,269 @@ inform() {
 }
 
 warning() {
-	echo -e "$(tput setaf 1)$1$(tput sgr0)"
+	echo -e "$(tput setaf 1)⚠ WARNING:$(tput sgr0) $1"
 }
 
 fatal() {
-	echo -e "$(tput setaf 1)⚠ FATAL: $(tput sgr0) $1"
+	echo -e "$(tput setaf 1)⚠ FATAL:$(tput sgr0) $1"
 	exit 1
 }
 
-if [ "$(id -u)" -eq 0 ]; then
-  fatal "Script should not be run as root. Try: './install.sh'\n"
-fi
+confirm() {
+	if $FORCE; then
+		true
+	else
+		read -r -p "$1 [y/N] " response < /dev/tty
+		if [[ $response =~ ^(yes|y|Y)$ ]]; then
+			true
+		else
+			false
+		fi
+	fi
+}
 
+check_for_error() {
+	if [ $? -ne 0 ]; then
+		CMD_ERRORS=true
+		warning "^^^ 😬 previous command did not exit cleanly!"
+	fi
+}
 
-# Update apt and install dependencies
+user_check() {
+	if [ "$(id -u)" -eq 0 ]; then
+		fatal "Script should not be run as root. Try './install.sh'\n"
+	fi
+}
+
+os_check() {
+	if [ ! -f /etc/os-release ]; then
+		warning "Could not read /etc/os-release, assuming a recent Raspberry Pi OS.\n"
+		return
+	fi
+	# shellcheck disable=SC1091
+	source /etc/os-release
+	case "$VERSION_CODENAME" in
+	trixie)
+		inform "Detected Raspberry Pi OS Trixie\n"
+		;;
+	bookworm)
+		warning "Detected Raspberry Pi OS Bookworm."
+		printf "Bookworm still works, but Trixie is what we test against.\n\n"
+		;;
+	*)
+		warning "Detected ${PRETTY_NAME:-an unknown OS}."
+		printf "This installer targets Raspberry Pi OS Trixie. Older releases\n"
+		printf "ship Python and GStreamer versions we no longer test against.\n\n"
+		if ! confirm "Continue anyway?"; then
+			fatal "Aborted.\n"
+		fi
+		;;
+	esac
+}
+
+find_config() {
+	if [ ! -f "$CONFIG_DIR/$CONFIG_FILE" ]; then
+		CONFIG_DIR="/boot"
+		if [ ! -f "$CONFIG_DIR/$CONFIG_FILE" ]; then
+			fatal "Could not find $CONFIG_FILE!"
+		fi
+	fi
+	inform "Using $CONFIG_FILE in $CONFIG_DIR"
+}
+
+do_config_backup() {
+	if [ ! $CONFIG_BACKUP == true ]; then
+		CONFIG_BACKUP=true
+		FILENAME="config.preinstall-pirate-audio-$DATESTAMP.txt"
+		inform "Backing up $CONFIG_DIR/$CONFIG_FILE to $CONFIG_DIR/$FILENAME\n"
+		sudo cp "$CONFIG_DIR/$CONFIG_FILE" "$CONFIG_DIR/$FILENAME"
+		mkdir -p "$RESOURCES_TOP_DIR/config-backups/"
+		cp "$CONFIG_DIR/$CONFIG_FILE" "$RESOURCES_TOP_DIR/config-backups/$FILENAME"
+		if [ -f "$UNINSTALLER" ]; then
+			echo "sudo cp $RESOURCES_TOP_DIR/config-backups/$FILENAME $CONFIG_DIR/$CONFIG_FILE" >> "$UNINSTALLER"
+		fi
+	fi
+}
+
+apt_pkg_install() {
+	PACKAGES_NEEDED=()
+	PACKAGES_IN=("$@")
+	for ((i = 0; i < ${#PACKAGES_IN[@]}; i++)); do
+		PACKAGE="${PACKAGES_IN[$i]}"
+		if [ "$PACKAGE" == "" ]; then continue; fi
+		printf "Checking for %s\n" "$PACKAGE"
+		if ! dpkg -L "$PACKAGE" > /dev/null 2>&1; then
+			PACKAGES_NEEDED+=("$PACKAGE")
+		fi
+	done
+	PACKAGES="${PACKAGES_NEEDED[*]}"
+	if ! [ "$PACKAGES" == "" ]; then
+		printf "\n"
+		inform "Installing missing packages: $PACKAGES"
+		if [ "$APT_HAS_UPDATED" = false ]; then
+			sudo apt update
+			APT_HAS_UPDATED=true
+		fi
+		# shellcheck disable=SC2086
+		sudo apt install -y $PACKAGES
+		check_for_error
+		if [ -f "$UNINSTALLER" ]; then
+			echo "sudo apt remove -y $PACKAGES" >> "$UNINSTALLER"
+		fi
+	fi
+}
+
+pip_pkg_install() {
+	# A null Keyring prevents pip stalling in the background
+	PYTHON_KEYRING_BACKEND=keyring.backends.null.Keyring "$PYTHON" -m pip install --upgrade "$@"
+	check_for_error
+}
+
+add_to_config_text() {
+	CONFIG_LINE="$1"
+	do_config_backup
+	sudo sed -i "s/^#$CONFIG_LINE/$CONFIG_LINE/" "$CONFIG_DIR/$CONFIG_FILE"
+	if ! grep -q "^$CONFIG_LINE" "$CONFIG_DIR/$CONFIG_FILE"; then
+		inform "Adding $CONFIG_LINE to $CONFIG_DIR/$CONFIG_FILE"
+		printf "%s\n" "$CONFIG_LINE" | sudo tee --append "$CONFIG_DIR/$CONFIG_FILE"
+	fi
+}
+
+while [[ $# -gt 0 ]]; do
+	K="$1"
+	case $K in
+	-f|--force)
+		FORCE=true
+		shift
+		;;
+	-n|--no-upgrade)
+		DO_UPGRADE=false
+		shift
+		;;
+	*)
+		printf "Unrecognised option: %s\n" "$1"
+		printf "Usage: %s\n" "$USAGE"
+		exit 1
+		;;
+	esac
+done
+
+printf "Pirate Audio: Mopidy Installer\n\n"
+
+user_check
+os_check
+find_config
+
+printf "\n"
+
+mkdir -p "$RESOURCES_DIR"
+
+cat << EOF > "$UNINSTALLER"
+printf "It's recommended you run these steps manually.\n"
+printf "If you want to run the full script, open it in\n"
+printf "an editor and remove 'exit 1' from below.\n"
+exit 1
+systemctl --user disable --now mopidy
+rm -f $SERVICE_FILE
+sudo rm -f $MOPIDY_SUDOERS
+rm -rf $VENV_DIR
+EOF
+
 inform "Updating apt and installing dependencies"
 sudo apt update
+APT_HAS_UPDATED=true
 
-# Comment out if you don't want to upgrade
-sudo apt upgrade -y
+if $DO_UPGRADE; then
+	sudo apt upgrade -y
+	check_for_error
+fi
 
-# Install git and vim so the pimoroni pirate-audio repo can be copied (and b/c vim over nano any day :-) )
-# sudo apt-get install -y git vim
+apt_pkg_install "${APT_PACKAGES[@]}"
 
-sudo apt install -y \
-  python3-spidev \
-  python3-pip \
-  python3-pil \
-  python3-numpy \
-  python3-lgpio \
-  python3-virtualenvwrapper \
-  virtualenvwrapper \
-  libopenjp2-7 \
-  python3-gi \
-  libgstreamer1.0-0 \
-  libgstreamer1.0-dev \
-  gstreamer1.0-plugins-base \
-  gstreamer1.0-plugins-good \
-  gstreamer1.0-plugins-bad \
-  gstreamer1.0-plugins-ugly \
-  gstreamer1.0-tools \
-  gstreamer1.0-gl \
-  gstreamer1.0-gtk3
+printf "\n"
 
-sudo apt install -y python3-gst-1.0 gir1.2-gstreamer-1.0
-sudo apt install -y gstreamer1.0-pulseaudio gstreamer1.0-alsa
-
-echo
-
-source $(dpkg -L virtualenvwrapper | grep virtualenvwrapper.sh)
-
-inform "Making virtual environment..."
-mkvirtualenv mopidy --system-site-packages
-workon mopidy
-
-# Verify python version via pip
-inform "Verifying python $PYTHON_MAJOR_VERSION.x version"
-PIP_CHECK="$PIP_BIN --version"
-VERSION=$($PIP_CHECK | sed s/^.*\(python[\ ]*// | sed s/.$//)
-RESULT=$?
-if [ "$RESULT" == "0" ]; then
-  MAJOR_VERSION=$(echo "$VERSION" | awk -F. '{print $1}')
-  if [ "$MAJOR_VERSION" -eq "$PYTHON_MAJOR_VERSION" ]; then
-    success "Found Python $VERSION"
-  else
-    warning "error: installation requires pip for Python $PYTHON_MAJOR_VERSION.x, Python $VERSION found."
-    echo
-    exit 1
-  fi
+if [ ! -f "$VENV_DIR/bin/activate" ]; then
+	inform "Creating a virtual Python environment in $VENV_DIR"
+	mkdir -p "$VENV_DIR"
+	/usr/bin/python3 -m venv --system-site-packages "$VENV_DIR"
+	check_for_error
 else
-  warning "error: \`$PIP_CHECK\` failed to execute successfully"
-  echo
-  exit 1
-fi
-echo
-
-# Stop mopidy if running
-systemctl --user status mopidy > /dev/null 2>&1
-RESULT=$?
-if [ "$RESULT" == "0" ]; then
-  inform "Stopping Mopidy service..."
-  systemctl --user stop mopidy
-  echo
+	inform "Using the existing virtual Python environment in $VENV_DIR"
 fi
 
-# Enable SPI
+if [ ! -f "$PYTHON" ]; then
+	fatal "Python not found in $VENV_DIR!\n"
+fi
+
+printf "\n"
+
+if systemctl --user is-active --quiet mopidy; then
+	inform "Stopping the Mopidy service"
+	systemctl --user stop mopidy
+	printf "\n"
+fi
+
 sudo raspi-config nonint do_spi 0
 
-# Add necessary lines to config.txt (if they don't exist)
-add_to_config_text "gpio=25=op,dh" "$CONFIG_TXT"
-add_to_config_text "dtoverlay=hifiberry-dac" "$CONFIG_TXT"
+for ((i = 0; i < ${#CONFIG_TXT[@]}; i++)); do
+	add_to_config_text "${CONFIG_TXT[$i]}"
+done
+
+printf "\n"
 
 if [ -f "$MOPIDY_CONFIG" ]; then
-  inform "Backing up mopidy config to: $MOPIDY_CONFIG.backup-$DATESTAMP"
-  cp "$MOPIDY_CONFIG" "$MOPIDY_CONFIG.backup-$DATESTAMP"
-  EXISTING_CONFIG=true
-  echo
+	inform "Backing up $MOPIDY_CONFIG to $MOPIDY_CONFIG.backup-$DATESTAMP"
+	cp "$MOPIDY_CONFIG" "$MOPIDY_CONFIG.backup-$DATESTAMP"
+	EXISTING_CONFIG=true
+	printf "\n"
 fi
 
-# Install Mopidy and Iris web UI
-inform "Installing Mopidy and Iris web UI"
-$PIP_BIN install --upgrade mopidy mopidy-iris
+inform "Installing Mopidy, Iris and the Pirate Audio plugins. Please wait..."
+pip_pkg_install "${PIP_PACKAGES[@]}"
 
-echo
+printf "\n"
 
-# Allow Iris to run its system.sh script for https://github.com/pimoroni/pirate-audio/issues/3
-# This script backs Iris UI buttons for local scan and server restart.
+# Iris shells out to its own system.sh to restart Mopidy and rescan local
+# files, which needs root. See https://github.com/pimoroni/pirate-audio/issues/3
+IRIS_SYSTEM_SH=$("$PYTHON" - <<'EOF'
+from importlib.metadata import PackageNotFoundError, distribution
 
-# Get location of Iris's system.sh
-MOPIDY_SYSTEM_SH=$(python$PYTHON_MAJOR_VERSION - <<EOF
-import pkg_resources
-distribution = pkg_resources.get_distribution('mopidy_iris')
-print(f"{distribution.location}/mopidy_iris/system.sh")
+try:
+    print(distribution("mopidy-iris").locate_file("mopidy_iris/system.sh"))
+except PackageNotFoundError:
+    pass
 EOF
 )
 
-# Add it to sudoers
-if [ "$MOPIDY_SYSTEM_SH" == "" ]; then
-  warning "Could not find system.sh path for mopidy_iris using python$PYTHON_MAJOR_VERSION"
-  warning "Refusing to edit $MOPIDY_SUDOERS with empty system.sh path!"
+if [ ! -f "$IRIS_SYSTEM_SH" ]; then
+	warning "Could not find Iris's system.sh, skipping $MOPIDY_SUDOERS"
 else
-  inform "Adding $MOPIDY_SYSTEM_SH to $MOPIDY_SUDOERS"
-  echo "mopidy ALL=NOPASSWD: $MOPIDY_SYSTEM_SH" | sudo tee -a $MOPIDY_SUDOERS
-  echo
+	inform "Allowing $MOPIDY_USER to run $IRIS_SYSTEM_SH as root"
+	echo "$MOPIDY_USER ALL=NOPASSWD: $IRIS_SYSTEM_SH" | sudo tee "$MOPIDY_SUDOERS" > /dev/null
+	sudo chmod 0440 "$MOPIDY_SUDOERS"
+	if ! sudo visudo -c -f "$MOPIDY_SUDOERS" > /dev/null; then
+		warning "$MOPIDY_SUDOERS failed validation, removing it"
+		sudo rm -f "$MOPIDY_SUDOERS"
+	fi
 fi
 
-# Install support plugins for Pirate Audio
-inform "Installing Pirate Audio plugins..."
-$PIP_BIN install --upgrade Mopidy-PiDi Mopidy-Local pidi-display-pil pidi-display-st7789 mopidy-raspberry-gpio
-echo
+printf "\n"
 
-# Append Pirate Audio specific defaults to mopidy.conf
-# Updated to only change necessary values, as per: https://github.com/pimoroni/pirate-audio/issues/1
-# Updated to *append* config values to mopidy.conf, as per: https://github.com/pimoroni/pirate-audio/issues/1#issuecomment-557556802
 inform "Configuring Mopidy"
 
-# Reset the config file
-rm -f "$MOPIDY_CONFIG"
-rm -f "$MOPIDY_DEFAULT_CONFIG"
-
 mkdir -p "$MOPIDY_CONFIG_DIR"
-
-# Store a default fallback config, do we even need this?
-mopidy config > "$MOPIDY_DEFAULT_CONFIG"
-
-# Create a directory to hold local music
 mkdir -p "$MUSIC_DIR"
 
-# Add pirate audio customisations
+# Only the settings Pirate Audio needs, as per
+# https://github.com/pimoroni/pirate-audio/issues/1
 cat <<EOF > "$MOPIDY_CONFIG"
-
 [raspberry-gpio]
 enabled = true
 bcm5 = play_pause,active_low,250
 bcm6 = volume_down,active_low,250
 bcm16 = next,active_low,250
+# "Y" moved from BCM 20 to BCM 24 in January 2020. Both are listed so either
+# board revision works; the unused pin does nothing.
 bcm20 = volume_up,active_low,250
 bcm24 = volume_up,active_low,250
 
@@ -222,29 +382,21 @@ hostname = 0.0.0.0
 
 [audio]
 mixer_volume = 40
-
-[spotify]
-enabled = false
-client_id =
-client_secret =
 EOF
-echo
 
-# MAYBE?: Remove the sources.list to avoid any future issues with apt.mopidy.com failing
-# rm -f /etc/apt/sources.list.d/mopidy.list
+printf "\n"
 
+inform "Adding $MOPIDY_USER to the spi, i2c, gpio and video groups"
 sudo usermod -a -G spi,i2c,gpio,video "$MOPIDY_USER"
+check_for_error
 
-inform "Installing Mopdify VirtualEnv Service"
+printf "\n"
 
-sudo mkdir -p /var/cache/mopidy
-sudo chown "$MOPIDY_USER:audio" /var/cache/mopidy
-mkdir -p "$HOME/.config/systemd/user"
+inform "Installing the Mopidy user service"
 
-MOPIDY_BIN=$(which mopidy)
-inform "Found bin at $MOPIDY_BIN"
+mkdir -p "$SERVICE_DIR"
 
-cat << EOF > "$HOME/.config/systemd/user/mopidy.service"
+cat << EOF > "$SERVICE_FILE"
 [Unit]
 Description=Mopidy music server
 After=avahi-daemon.service
@@ -252,34 +404,56 @@ After=dbus.service
 After=network-online.target
 Wants=network-online.target
 After=nss-lookup.target
-After=pulseaudio.service
 After=remote-fs.target
 After=sound.target
 
 [Service]
-WorkingDirectory=/home/$MOPIDY_USER
-ExecStart=$MOPIDY_BIN --config $MOPIDY_DEFAULT_CONFIG:$MOPIDY_CONFIG
+WorkingDirectory=$HOME
+ExecStart=$VENV_DIR/bin/mopidy --config $MOPIDY_CONFIG
+Restart=on-failure
 
 [Install]
 WantedBy=default.target
 EOF
 
-inform "Enabling and starting Mopidy"
+# Without linger the service only runs while the user is logged in
+sudo loginctl enable-linger "$MOPIDY_USER"
+check_for_error
+
+systemctl --user daemon-reload
 systemctl --user enable mopidy
 systemctl --user restart mopidy
+check_for_error
 
-echo
-success "All done!"
-if [ $EXISTING_CONFIG ]; then
-  diff "$MOPIDY_CONFIG" "$MOPIDY_CONFIG.backup-$DATESTAMP" > /dev/null 2>&1
-  RESULT=$?
-  if [ ! $RESULT == "0" ]; then
-    warning "Mopidy configuration has changed, see summary below and make sure to update $MOPIDY_CONFIG!"
-    inform "Your previous configuration was backed up to $MOPIDY_CONFIG.backup-$DATESTAMP"
-    diff "$MOPIDY_CONFIG" "$MOPIDY_CONFIG.backup-$DATESTAMP"
-  else
-    echo "Don't forget to edit $MOPIDY_CONFIG with your preferences and/or Spotify config."
-  fi
+printf "\n"
+
+if [ "$CMD_ERRORS" = true ]; then
+	warning "One or more setup commands appear to have failed."
+	printf "This might prevent things from working properly.\n"
+	printf "Make sure your OS is up to date and try re-running this installer.\n"
+	printf "If things still don't work, report this or find help at %s.\n\n" "$GITHUB_URL"
 else
-  echo "Don't forget to edit $MOPIDY_CONFIG with you preferences and/or Spotify config."
+	success "All done!"
+fi
+
+printf "Check on Mopidy with: systemctl --user status mopidy\n"
+printf "Iris is at: http://%s.local:6680/iris/\n" "$(hostname)"
+printf "Drop music into %s and rescan it from Iris.\n" "$MUSIC_DIR"
+printf "Find uninstall steps in %s\n\n" "$UNINSTALLER"
+
+if [ "$EXISTING_CONFIG" = true ]; then
+	if ! diff "$MOPIDY_CONFIG" "$MOPIDY_CONFIG.backup-$DATESTAMP" > /dev/null 2>&1; then
+		warning "Your Mopidy configuration has changed!"
+		inform "Your previous configuration is at $MOPIDY_CONFIG.backup-$DATESTAMP"
+		diff "$MOPIDY_CONFIG" "$MOPIDY_CONFIG.backup-$DATESTAMP"
+		printf "\n"
+	fi
+fi
+
+printf "Reboot for the changes to %s/%s to take effect.\n\n" "$CONFIG_DIR" "$CONFIG_FILE"
+
+if [ "$CMD_ERRORS" = true ]; then
+	exit 1
+else
+	exit 0
 fi

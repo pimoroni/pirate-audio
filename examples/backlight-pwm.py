@@ -3,7 +3,7 @@
 import time
 import math
 import RPi.GPIO as GPIO
-from ST7789 import ST7789
+from st7789 import ST7789
 from PIL import Image, ImageDraw
 
 
