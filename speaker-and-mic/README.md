@@ -4,15 +4,15 @@ The following dtoverlay and instructions will help you use a speaker/audio outpu
 
 ## Installing
 
-Build the .dtbo file with `make` and then copy it to `/boot/overlays` or run `sudo make install`.
+Build the .dtbo file with `make` and then copy it to `/boot/firmware/overlays` or run `sudo make install`.
 
-Add the following to `/boot/config.txt`:
+Add the following to `/boot/firmware/config.txt`:
 
 ```
 dtoverlay=adau7002-pcm5102a-io
 ```
 
-Add the following into `~/.asound.conf` or `/etc/asound.conf` as per the clip recorder README: https://github.com/pimoroni/pirate-audio/tree/master/clip-recorder
+Add the following into `~/.asoundrc` or `/etc/asound.conf` as per the clip recorder README: https://github.com/pimoroni/pirate-audio/tree/master/clip-recorder
 
 ```
 pcm.mic_hw{

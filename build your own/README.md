@@ -2,11 +2,11 @@ Here are some instructions to use the Pirate Audio Headphone Amp (https://shop.p
 
 # Sound
 
-## /boot/config.txt
+## /boot/firmware/config.txt
 
-Edit /boot/config.txt
+Edit /boot/firmware/config.txt
 ```
-sudo nano /boot/config.txt
+sudo nano /boot/firmware/config.txt
 ```
 ### Set up audio
 Add this to the end of of the file:
@@ -53,15 +53,15 @@ ctl.!default {
 }
 pcm.!default {
         type plug
-        slave.pcm “softvol”
+        slave.pcm "softvol"
 }
 pcm.softvol {
         type softvol
         slave {
-                pcm “dmix”
+                pcm "dmix"
         }
         control {
-                name “Amp”
+                name "Amp"
                 card 0
         }
         min_dB -5.0
@@ -75,40 +75,44 @@ pcm.softvol {
 
 ## Install required packages
 
-As per usual, make sure you have the latest Raspian:
+As per usual, make sure you're up to date:
 ```
 sudo apt update
 sudo apt upgrade
 ```
 Then:
 ```
-sudo apt install python3-rpi.gpio python3-spidev python3-pip python3-pil python3-numpy
-sudo pip3 install st7789
+sudo apt install python3-rpi-lgpio python3-spidev python3-pip python3-pil python3-numpy python3-venv
+python3 -m venv --system-site-packages ~/.virtualenvs/pirate-audio
+source ~/.virtualenvs/pirate-audio/bin/activate
+pip install st7789
 ```
+
+Install `python3-rpi-lgpio` rather than `python3-rpi.gpio`: it provides the same `RPi.GPIO` API on top of `lgpio`, and the original doesn't work on Raspberry Pi 5 or on Raspberry Pi OS Trixie.
 
 ## Using the GPIO
 If you've not used the GPIO much, this script may be helpful:
 * [read_gpio_pins.py](read_gpio_pins.py).
 
 ## Using the square display (240x240):
-The get started with the square display, see [st7789 Python library examples](https://github.com/pimoroni/st7789-python/tree/master/examples), such as:
+The get started with the square display, see [st7789 Python library examples](https://github.com/pimoroni/st7789-python/tree/main/examples), such as:
 * [display_scrolling-text.py](display_scrolling-text.py)
 * [display_shapes.py](display_shapes.py)
 
 ## Things to note
 
 ### Turning the backlight off while the Pi is running
-It's possible to turn the backlight of the display on/off. For example, with the above code, and `disp` initialised accordingly (`disp = ST7789.ST7789(...)`), the following command will turn off the backlight:
+It's possible to turn the backlight of the display on/off. For example, with the above code, and `disp` initialised accordingly (`disp = st7789.ST7789(...)`), the following command will turn off the backlight:
 ```
 disp.set_backlight(0)
 ```
-With the above libraries, it is not possible to dim the backlight. Hwoever, there are notes here on how this may be possible: https://github.com/pimoroni/st7789-python/issues/8/
+With the above libraries, it is not possible to dim the backlight. However, there are notes here on how this may be possible: https://github.com/pimoroni/st7789-python/issues/8/
 
 ### Turning the backlight off when the Pi is powered down.
 
 Note that when Pi is powered down, the backlight comes back on. The backlight is turned off by a low signal on the backlight pin. When the Pi shuts down that pin is likely going to a floating state (not a low), thus the backlight goes back on, see [forum](https://forums.pimoroni.com/t/pirate-audio-headphone-amp-why-does-the-backlight-stay-on-when-the-raspberry-pi-is-powered-down/22126). 
 
-With the display configuration including `BACKLIGHT=13`, add the following text to `/boot/config.txt`:
+With the display configuration including `BACKLIGHT=13`, add the following text to `/boot/firmware/config.txt`:
 ```
 dtoverlay=gpio-poweroff,gpiopin=13,active_low=1
 ```
