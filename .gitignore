@@ -1,2 +1,4 @@
 .venv/
 .lgd-nfy0
+__pycache__/
+*.pyc

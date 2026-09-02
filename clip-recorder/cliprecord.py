@@ -209,8 +209,8 @@ class Recordamajig:
 
     def draw_text(self, x, y, text, font, w=480, h=None, alignment="left", vertical_alignment="top", color=COLOR_WHITE):
         tl, tt, tr, tb = self._draw.textbbox(xy=(x, y), text=text, font=font, align=alignment)
-        th = tt - tb
         tw = tr - tl
+        th = tb - tt
         if h is None:
             h = th
         if alignment == "center":
