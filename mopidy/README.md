@@ -251,4 +251,6 @@ journalctl --user -u mopidy -n 100
 
 **Buttons do nothing.** Check `python3-rpi-lgpio` is installed - `RPi.GPIO` proper doesn't work on Raspberry Pi 5 or on Trixie. If only the "Y" button is dead, see the BCM 20 / BCM 24 note above. (See [#112](https://github.com/pimoroni/pirate-audio/issues/112).)
 
+**No album art for local files.** Browse them through **Local** rather than **Files**. The `file` backend serves no images at all, so `pidi` falls back to looking the album up on MusicBrainz. `mopidy-local` extracts embedded art and picks up `album_art_files` (`*.jpg`, `*.jpeg`, `*.png`) next to your tracks, but only for files it has scanned - trigger a scan from Iris, or run `mopidy local scan`. (See [#79](https://github.com/pimoroni/pirate-audio/issues/79).)
+
 **Audio comes out of the wrong device.** Check `dtparam=audio=off` is in `/boot/firmware/config.txt` and that `aplay -l` shows the HifiBerry DAC. With more than one card present, GStreamer's `autoaudiosink` may well pick the other one.
