@@ -8,7 +8,7 @@ from PIL import Image, ImageTk, ImageDraw, ImageFont
 
 from fonts.ttf import RobotoMedium
 import RPi.GPIO as GPIO
-from ST7789 import ST7789
+from st7789 import ST7789
 import sounddevice
 import wave
 
@@ -35,7 +35,7 @@ def transparent(color, opacity=0.2):
     return r, g, b, opacity
 
 class Recordamajig:
-    def __init__(self, device="mic_out", output_device="default", samplerate=16000):
+    def __init__(self, device="mic_out", output_device="default", samplerate=48000):
         self._state = "initial"
         self._clip = 1
 
@@ -73,7 +73,7 @@ class Recordamajig:
         self._update_clip()
 
         self._stream = sounddevice.InputStream(
-            device=self._device,  # adau7002",
+            device=self._device,  # adau7002,
             dtype="int16",
             channels=2,
             samplerate=self._samplerate,
@@ -208,7 +208,9 @@ class Recordamajig:
             raise sounddevice.CallbackStop
 
     def draw_text(self, x, y, text, font, w=480, h=None, alignment="left", vertical_alignment="top", color=COLOR_WHITE):
-        tw, th = self._draw.textsize(text, font=font)
+        tl, tt, tr, tb = self._draw.textbbox(xy=(x, y), text=text, font=font, align=alignment)
+        th = tt - tb
+        tw = tr - tl
         if h is None:
             h = th
         if alignment == "center":
