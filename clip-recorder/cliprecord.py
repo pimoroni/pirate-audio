@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import argparse
 import math
 import time
 # import tkinter
@@ -342,6 +343,12 @@ class Recordamajig:
 # window.resizable(False, False)
 # window.title("Recordamajig")
 
+parser = argparse.ArgumentParser()
+parser.add_argument("--input-device", default="mic_out", help="ALSA/PortAudio capture device (see: arecord -L)")
+parser.add_argument("--output-device", default="default", help="ALSA/PortAudio playback device (see: aplay -L)")
+parser.add_argument("--samplerate", type=int, default=48000, help="Sample rate in Hz, must match your .asoundrc")
+args = parser.parse_args()
+
 SPI_SPEED_MHZ = 80
 
 display = ST7789(
@@ -353,7 +360,11 @@ display = ST7789(
     spi_speed_hz=SPI_SPEED_MHZ * 1000 * 1000
 )
 
-recordamajig = Recordamajig()
+recordamajig = Recordamajig(
+    device=args.input_device,
+    output_device=args.output_device,
+    samplerate=args.samplerate
+)
 
 def handle_keydown(e):
     char = getattr(e, "char", e)

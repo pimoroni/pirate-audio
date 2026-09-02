@@ -382,11 +382,6 @@ hostname = 0.0.0.0
 
 [audio]
 mixer_volume = 40
-
-[spotify]
-enabled = false
-client_id =
-client_secret =
 EOF
 
 printf "\n"
